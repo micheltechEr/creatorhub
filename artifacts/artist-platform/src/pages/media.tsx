@@ -52,10 +52,10 @@ export default function Media() {
       return;
     }
 
-    const formData = new FormData();
-    formData.append("file", file);
-
     try {
+      const formData = new FormData();
+      formData.append("file", file);
+      formData.append("data", file);
       await uploadMutation.mutateAsync({ data: formData as any });
       queryClient.invalidateQueries({ queryKey: getListMediaQueryKey() });
       toast.success("Video enviado com sucesso!");

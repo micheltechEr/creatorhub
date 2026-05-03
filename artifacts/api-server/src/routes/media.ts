@@ -57,20 +57,23 @@ router.get("/media", requireAuth, async (req: AuthRequest, res) => {
   });
 });
 
-router.post("/media", requireAuth, upload.single("file"), async (req: AuthRequest, res) => {
-  if (!req.file) {
+router.post("/media", requireAuth, upload.fields([{ name: "file", maxCount: 1 }, { name: "data", maxCount: 1 }]), async (req: AuthRequest, res) => {
+  const file = (req.files as { [fieldname: string]: Express.Multer.File[] } | undefined)?.file?.[0] ?? (req.files as { [fieldname: string]: Express.Multer.File[] } | undefined)?.data?.[0] ?? req.file;
+  if (!file) {
+    const multipartKeys = req.body && typeof req.body === "object" ? Object.keys(req.body).join(", ") : "";
+    req.log?.warn?.({ multipartKeys, hasBody: !!req.body }, "missing upload file");
     res.status(400).json({ error: "No file", message: "Nenhum arquivo enviado" });
     return;
   }
 
-  const fileUrl = `/api/media/file/${req.file.filename}`;
+  const fileUrl = `/api/media/file/${file.filename}`;
 
   const [media] = await db.insert(mediaTable).values({
     artistId: req.artistId!,
-    fileName: req.file.originalname,
-    fileSize: req.file.size,
+    fileName: file.originalname,
+    fileSize: file.size,
     fileUrl,
-    mimeType: req.file.mimetype,
+    mimeType: file.mimetype,
   }).returning();
 
   res.status(201).json({
