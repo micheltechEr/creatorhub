@@ -112,6 +112,50 @@ router.post("/users/bootstrap-from-clerk", async (req, res) => {
   res.status(201).json({ ok: true, role: "client" });
 });
 
+router.post("/users/promote-by-email", async (req, res) => {
+  const auth = getAuth(req);
+  if (!auth.userId) {
+    res.status(401).json({ error: "Unauthorized" });
+    return;
+  }
+
+  const [actor] = await db
+    .select()
+    .from(platformUsersTable)
+    .where(eq(platformUsersTable.clerkUserId, auth.userId))
+    .limit(1);
+
+  if (!actor || actor.role !== "superadmin") {
+    res.status(403).json({ error: "Forbidden" });
+    return;
+  }
+
+  const email = String((req.body as any)?.email ?? "").trim().toLowerCase();
+  if (!email) {
+    res.status(400).json({ error: "Validation error", message: "Email é obrigatório" });
+    return;
+  }
+
+  const [user] = await db
+    .select()
+    .from(platformUsersTable)
+    .where(eq(platformUsersTable.email, email))
+    .limit(1);
+
+  if (!user) {
+    res.status(404).json({ error: "User not found" });
+    return;
+  }
+
+  const [updated] = await db
+    .update(platformUsersTable)
+    .set({ role: "superadmin", updatedAt: new Date() })
+    .where(eq(platformUsersTable.id, user.id))
+    .returning();
+
+  res.json({ ok: true, id: updated.id, email: updated.email, role: updated.role });
+});
+
 // ── POST /users/bootstrap-admin — promote first user to superadmin ─────────────
 // Only works if NO superadmin exists yet. Used for initial platform setup.
 router.post("/users/bootstrap-admin", async (req, res) => {
