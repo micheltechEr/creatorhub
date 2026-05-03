@@ -1,0 +1,11 @@
+services:
+  - type: web
+    name: creatorhub-web
+    env: static
+    buildCommand: pnpm install && pnpm --filter @workspace/artist-platform run build
+    staticPublishPath: artifacts/artist-platform/dist
+    envVars:
+      - key: VITE_CLERK_PUBLISHABLE_KEY
+        sync: false
+      - key: VITE_API_BASE_URL
+        value: https://creatorhub-api.onrender.com
