@@ -1,4 +1,4 @@
-# ArtistFlow Platform
+# CREATOR HUB Platform
 
 A full-stack marketplace for artists who create custom personalized videos.
 

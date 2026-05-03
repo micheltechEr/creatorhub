@@ -1,5 +1,5 @@
 # =============================================================================
-# ArtistFlow — Multi-stage Docker build
+# CREATOR HUB — Multi-stage Docker build
 # Final image: node:20-alpine  (~5 MB base)
 # No native bindings, no node_modules in the runner — esbuild bundles everything
 # =============================================================================

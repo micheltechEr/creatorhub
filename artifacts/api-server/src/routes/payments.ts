@@ -93,7 +93,7 @@ router.post("/payments/checkout", requireAuth, async (req: AuthRequest, res) => 
       billingType: (billingType as BillingType) ?? "PIX",
       value: amountBRL,
       dueDate: dueDateString(3), // 3 days to pay
-      description: `ArtistFlow — ${order.title}`,
+      description: `CREATOR HUB — ${order.title}`,
       externalReference: order.id,
     });
 

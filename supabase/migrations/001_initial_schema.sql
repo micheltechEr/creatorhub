@@ -1,5 +1,5 @@
 -- ============================================================
--- ArtistFlow — Initial Schema Migration
+-- CREATOR HUB — Initial Schema Migration
 -- Target: Supabase (PostgreSQL 15+)
 -- ============================================================
 

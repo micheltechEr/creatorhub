@@ -179,7 +179,7 @@ export default function ArtistPublic() {
             <div>
               {/* Platform brand */}
               <p className="text-xs text-[#C9A961] font-semibold uppercase tracking-[1px] mb-4">
-                ArtistFlow
+                CREATOR HUB
               </p>
               <h1 className="font-serif text-5xl font-semibold text-white leading-tight mb-3">
                 {artist.name}

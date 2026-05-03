@@ -37,7 +37,7 @@ export default function Login() {
     try {
       const response = await loginMutation.mutateAsync({ data });
       login(response.accessToken, response.refreshToken);
-      toast.success("Bem-vindo ao ArtistFlow");
+      toast.success("Bem-vindo ao CREATOR HUB");
       setLocation("/dashboard");
     } catch {
       toast.error("Credenciais inválidas. Tente novamente.");
@@ -50,7 +50,7 @@ export default function Login() {
       <div className="hidden lg:flex lg:w-1/2 bg-[#0A0A0A] flex-col justify-between p-12">
         <div>
           <span className="font-serif text-2xl font-semibold text-white tracking-tight">
-            ArtistFlow
+            CREATOR HUB
           </span>
           <div className="mt-1 h-px w-10 bg-[#C9A961]" />
         </div>
@@ -66,7 +66,7 @@ export default function Login() {
           </p>
         </div>
         <p className="text-[#3D3D3D] text-sm">
-          © {new Date().getFullYear()} ArtistFlow. Todos os direitos reservados.
+          © {new Date().getFullYear()} CREATOR HUB. Todos os direitos reservados.
         </p>
       </div>
 
@@ -75,7 +75,7 @@ export default function Login() {
         <div className="w-full max-w-sm">
           {/* Mobile logo */}
           <div className="mb-10 lg:hidden">
-            <span className="font-serif text-2xl font-semibold text-foreground">ArtistFlow</span>
+            <span className="font-serif text-2xl font-semibold text-foreground">CREATOR HUB</span>
             <div className="mt-1 h-px w-8 bg-[#C9A961]" />
           </div>
 

@@ -75,7 +75,7 @@ async function asaasRequest<T>(
     headers: {
       "Content-Type": "application/json",
       "access_token": ASAAS_API_KEY,
-      "User-Agent": "ArtistFlow/1.0",
+    "User-Agent": "CREATOR HUB/1.0",
     },
     body: body ? JSON.stringify(body) : undefined,
   });

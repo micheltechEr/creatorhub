@@ -44,7 +44,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
       {/* Logo */}
       <div className="mb-8 px-5">
         <span className="font-serif text-xl font-semibold tracking-tight text-foreground">
-          ArtistFlow
+          CREATOR HUB
         </span>
         <div className="mt-0.5 h-px w-8 bg-[#C9A961]" />
       </div>
