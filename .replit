@@ -38,3 +38,6 @@ channel = "stable-25_05"
 
 [userenv.shared]
 ASAAS_ENV = "sandbox"
+SUPABASE_URL = "https://xbfmxmwrcgnixdwlgjvm.supabase.co"
+SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhiZm14bXdyY2duaXhkd2xnanZtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzc3NzY4MjEsImV4cCI6MjA5MzM1MjgyMX0.czPQHkYaxY0lFNvv-9EIXdNTp24-jFD5OrD6nUwwiyg"
+SUPABASE_SERVICE_ROLE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhiZm14bXdyY2duaXhkd2xnanZtIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3Nzc3NjgyMSwiZXhwIjoyMDkzMzUyODIxfQ.x68WZ-gCpj592U9pv_wwORlVYFIo3hoXhnwB5zkGjoA"
