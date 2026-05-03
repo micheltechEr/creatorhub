@@ -161,7 +161,7 @@ router.get("/payments/order/:orderId", requireAuth, async (req: AuthRequest, res
   const [payment] = await db
     .select()
     .from(paymentsTable)
-    .where(eq(paymentsTable.orderId, req.params.orderId))
+    .where(eq(paymentsTable.orderId, req.params.orderId as string))
     .limit(1);
 
   if (!payment) {
@@ -204,7 +204,7 @@ router.get("/payments/:id/pix-qr", requireAuth, async (req: AuthRequest, res) =>
   const [payment] = await db
     .select()
     .from(paymentsTable)
-    .where(eq(paymentsTable.id, req.params.id))
+    .where(eq(paymentsTable.id, req.params.id as string))
     .limit(1);
 
   if (!payment || !payment.asaasPaymentId) {

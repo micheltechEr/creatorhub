@@ -16,7 +16,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     const token = localStorage.getItem("accessToken");
     setIsAuthenticated(!!token);
-    setAuthTokenGetter(() => localStorage.getItem("accessToken") || undefined);
+    setAuthTokenGetter(() => localStorage.getItem("accessToken") ?? null);
   }, []);
 
   const login = (accessToken: string, refreshToken: string) => {

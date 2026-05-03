@@ -93,7 +93,7 @@ router.get("/orders/:id", requireAuth, async (req: AuthRequest, res) => {
   const [order] = await db
     .select()
     .from(ordersTable)
-    .where(and(eq(ordersTable.id, req.params.id), eq(ordersTable.artistId, req.artistId!)))
+    .where(and(eq(ordersTable.id, req.params.id as string), eq(ordersTable.artistId, req.artistId!)))
     .limit(1);
 
   if (!order) {
@@ -114,7 +114,7 @@ router.patch("/orders/:id/status", requireAuth, async (req: AuthRequest, res) =>
   const [existing] = await db
     .select()
     .from(ordersTable)
-    .where(and(eq(ordersTable.id, req.params.id), eq(ordersTable.artistId, req.artistId!)))
+    .where(and(eq(ordersTable.id, req.params.id as string), eq(ordersTable.artistId, req.artistId!)))
     .limit(1);
 
   if (!existing) {
@@ -142,7 +142,7 @@ router.patch("/orders/:id/status", requireAuth, async (req: AuthRequest, res) =>
   const [updated] = await db
     .update(ordersTable)
     .set(updates)
-    .where(eq(ordersTable.id, req.params.id))
+    .where(eq(ordersTable.id, req.params.id as string))
     .returning();
 
   res.json(formatOrder(updated));

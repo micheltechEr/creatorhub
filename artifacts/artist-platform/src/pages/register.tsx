@@ -5,11 +5,9 @@ import { z } from "zod";
 import { useRegister } from "@workspace/api-client-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Checkbox } from "@/components/ui/checkbox";
 import {
   Form,
   FormControl,
-  FormDescription,
   FormField,
   FormItem,
   FormLabel,
@@ -17,24 +15,26 @@ import {
 } from "@/components/ui/form";
 import { Link, useLocation } from "wouter";
 import { toast } from "sonner";
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { useState } from "react";
-import { Badge } from "@/components/ui/badge";
 import { X } from "lucide-react";
 
 const CATEGORIES = ["Música", "Dança", "Comédia", "Motivação", "Aniversário", "Casamento", "Outro"];
 
 const registerSchema = z.object({
-  name: z.string().min(2, "Name is required"),
-  email: z.string().email("Invalid email address"),
-  password: z.string().min(8, "Password must be at least 8 characters"),
-  categories: z.array(z.string()).min(1, "Select at least one category"),
+  name: z.string().min(2, "Nome obrigatório"),
+  email: z.string().email("E-mail inválido"),
+  password: z.string().min(8, "Mínimo 8 caracteres"),
+  categories: z.array(z.string()).min(1, "Selecione ao menos uma categoria"),
   tags: z.array(z.string()).optional(),
-  basePrice: z.coerce.number().min(1, "Base price must be greater than 0"),
-  deliveryDays: z.coerce.number().int().min(1, "Must be at least 1 day").max(180, "Maximum 180 days"),
+  basePrice: z.coerce.number().min(1, "Preço deve ser maior que zero"),
+  deliveryDays: z.coerce.number().int().min(1, "Mínimo 1 dia").max(180, "Máximo 180 dias"),
 });
 
 type RegisterFormValues = z.infer<typeof registerSchema>;
+
+const inputCls = "h-12 border-border bg-white focus-visible:ring-0 focus-visible:border-foreground text-sm";
+const inputStyle = { borderRadius: "2px" };
+const labelCls = "text-xs font-medium uppercase tracking-[0.5px] text-[#1F1F1F]";
 
 export default function Register() {
   const { login } = useAuth();
@@ -59,121 +59,94 @@ export default function Register() {
     try {
       const response = await registerMutation.mutateAsync({ data });
       login(response.accessToken, response.refreshToken);
-      toast.success("Welcome to ArtistFlow!");
+      toast.success("Bem-vindo ao ArtistFlow!");
       setLocation("/dashboard");
     } catch (error: any) {
-      toast.error(error?.response?.data?.error || "Registration failed. Please try again.");
+      toast.error(error?.response?.data?.error || "Erro no cadastro. Tente novamente.");
     }
   };
 
   const handleAddTag = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === "Enter" && tagInput.trim()) {
       e.preventDefault();
-      const currentTags = form.getValues("tags") || [];
-      if (!currentTags.includes(tagInput.trim())) {
-        form.setValue("tags", [...currentTags, tagInput.trim()]);
+      const current = form.getValues("tags") || [];
+      if (!current.includes(tagInput.trim())) {
+        form.setValue("tags", [...current, tagInput.trim()]);
       }
       setTagInput("");
     }
   };
 
-  const removeTag = (tagToRemove: string) => {
-    const currentTags = form.getValues("tags") || [];
-    form.setValue("tags", currentTags.filter(tag => tag !== tagToRemove));
+  const removeTag = (tag: string) => {
+    form.setValue("tags", (form.getValues("tags") || []).filter((t) => t !== tag));
   };
 
+  const cats = form.watch("categories");
+
   return (
-    <div className="min-h-screen flex items-center justify-center bg-background py-12 px-4 relative overflow-hidden">
-      {/* Decorative background elements */}
-      <div className="absolute top-0 left-0 w-full h-full overflow-hidden pointer-events-none">
-        <div className="absolute top-[-10%] right-[-10%] w-[50%] h-[50%] rounded-full bg-primary/5 blur-[120px]"></div>
-        <div className="absolute bottom-[-10%] left-[-10%] w-[50%] h-[50%] rounded-full bg-secondary/5 blur-[120px]"></div>
+    <div className="min-h-screen flex bg-background">
+      {/* Left panel */}
+      <div className="hidden lg:flex lg:w-5/12 bg-[#0A0A0A] flex-col justify-between p-12 shrink-0">
+        <div>
+          <span className="font-serif text-2xl font-semibold text-white tracking-tight">ArtistFlow</span>
+          <div className="mt-1 h-px w-10 bg-[#C9A961]" />
+        </div>
+        <div>
+          <h1
+            className="font-serif text-5xl font-semibold text-white leading-tight mb-6"
+            style={{ letterSpacing: "-1px" }}
+          >
+            Crie seu perfil<br />de artista.
+          </h1>
+          <p className="text-[#6D6D6D] text-base leading-relaxed max-w-sm">
+            Configure seu portfólio, defina preços e comece a receber pedidos de clientes corporativos e personalidades.
+          </p>
+        </div>
+        <p className="text-[#3D3D3D] text-sm">
+          © {new Date().getFullYear()} ArtistFlow. Todos os direitos reservados.
+        </p>
       </div>
 
-      <Card className="w-full max-w-2xl relative z-10 border-none shadow-xl bg-card/80 backdrop-blur-sm">
-        <CardHeader className="space-y-1 pb-6">
-          <CardTitle className="text-3xl font-bold tracking-tight text-primary">Join ArtistFlow</CardTitle>
-          <CardDescription className="text-base">
-            Set up your creative profile and start receiving requests.
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-              
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <FormField
-                  control={form.control}
-                  name="name"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Artist Name</FormLabel>
-                      <FormControl>
-                        <Input placeholder="Your stage name" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                
-                <FormField
-                  control={form.control}
-                  name="email"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Email</FormLabel>
-                      <FormControl>
-                        <Input type="email" placeholder="artist@example.com" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </div>
+      {/* Right panel — scrollable */}
+      <div className="flex-1 overflow-y-auto">
+        <div className="min-h-full flex items-start justify-center p-8 lg:p-14">
+          <div className="w-full max-w-xl">
+            {/* Mobile logo */}
+            <div className="mb-8 lg:hidden">
+              <span className="font-serif text-2xl font-semibold text-foreground">ArtistFlow</span>
+              <div className="mt-1 h-px w-8 bg-[#C9A961]" />
+            </div>
 
-              <FormField
-                control={form.control}
-                name="password"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Password</FormLabel>
-                    <FormControl>
-                      <Input type="password" placeholder="••••••••" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+            <div className="mb-8">
+              <h2 className="text-2xl font-bold text-foreground mb-1">Criar conta</h2>
+              <p className="text-sm text-muted-foreground">Preencha os dados para começar</p>
+            </div>
 
-              <div className="space-y-4 pt-4 border-t border-border/50">
-                <h3 className="text-lg font-medium leading-none tracking-tight">Your Service Offering</h3>
-                
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <Form {...form}>
+              <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-5">
+                {/* Name + Email */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <FormField
                     control={form.control}
-                    name="basePrice"
+                    name="name"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Base Price (BRL)</FormLabel>
+                        <FormLabel className={labelCls}>Nome artístico</FormLabel>
                         <FormControl>
-                          <div className="relative">
-                            <span className="absolute left-3 top-2.5 text-muted-foreground">R$</span>
-                            <Input type="number" className="pl-9" {...field} />
-                          </div>
+                          <Input className={inputCls} style={inputStyle} placeholder="Seu nome artístico" {...field} />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
                     )}
                   />
-                  
                   <FormField
                     control={form.control}
-                    name="deliveryDays"
+                    name="email"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Delivery Time (Days)</FormLabel>
+                        <FormLabel className={labelCls}>E-mail</FormLabel>
                         <FormControl>
-                          <Input type="number" {...field} />
+                          <Input type="email" className={inputCls} style={inputStyle} placeholder="artista@exemplo.com" {...field} />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -183,105 +156,148 @@ export default function Register() {
 
                 <FormField
                   control={form.control}
-                  name="categories"
-                  render={() => (
-                    <FormItem>
-                      <div className="mb-4">
-                        <FormLabel className="text-base">Categories</FormLabel>
-                        <FormDescription>
-                          Select what types of videos you create.
-                        </FormDescription>
-                      </div>
-                      <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-                        {CATEGORIES.map((category) => (
-                          <FormField
-                            key={category}
-                            control={form.control}
-                            name="categories"
-                            render={({ field }) => {
-                              return (
-                                <FormItem
-                                  key={category}
-                                  className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-3 shadow-sm hover:bg-accent/5 transition-colors cursor-pointer"
-                                >
-                                  <FormControl>
-                                    <Checkbox
-                                      checked={field.value?.includes(category)}
-                                      onCheckedChange={(checked) => {
-                                        return checked
-                                          ? field.onChange([...field.value, category])
-                                          : field.onChange(
-                                              field.value?.filter(
-                                                (value) => value !== category
-                                              )
-                                            )
-                                      }}
-                                    />
-                                  </FormControl>
-                                  <FormLabel className="font-normal cursor-pointer w-full">
-                                    {category}
-                                  </FormLabel>
-                                </FormItem>
-                              )
-                            }}
-                          />
-                        ))}
-                      </div>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={form.control}
-                  name="tags"
+                  name="password"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Tags (Optional)</FormLabel>
-                      <FormDescription>Press Enter to add a tag</FormDescription>
+                      <FormLabel className={labelCls}>Senha</FormLabel>
                       <FormControl>
-                        <Input
-                          placeholder="e.g. violão, engraçado"
-                          value={tagInput}
-                          onChange={(e) => setTagInput(e.target.value)}
-                          onKeyDown={handleAddTag}
-                        />
+                        <Input type="password" className={inputCls} style={inputStyle} placeholder="••••••••" {...field} />
                       </FormControl>
-                      <div className="flex flex-wrap gap-2 mt-2">
-                        {field.value?.map((tag) => (
-                          <Badge key={tag} variant="secondary" className="px-2 py-1">
-                            {tag}
-                            <button
-                              type="button"
-                              onClick={() => removeTag(tag)}
-                              className="ml-2 hover:bg-destructive hover:text-destructive-foreground rounded-full p-0.5"
-                            >
-                              <X className="h-3 w-3" />
-                            </button>
-                          </Badge>
-                        ))}
-                      </div>
                       <FormMessage />
                     </FormItem>
                   )}
                 />
-              </div>
 
-              <Button type="submit" className="w-full h-12 mt-6 text-md font-medium" disabled={registerMutation.isPending}>
-                {registerMutation.isPending ? "Creating Profile..." : "Create Artist Profile"}
-              </Button>
-            </form>
-          </Form>
-        </CardContent>
-        <CardFooter className="flex justify-center border-t border-border/50 pt-6 mt-4">
-          <p className="text-sm text-muted-foreground">
-            Already have an account?{" "}
-            <Link href="/login">
-              <span className="text-primary font-medium hover:underline cursor-pointer">Sign in</span>
-            </Link>
-          </p>
-        </CardFooter>
-      </Card>
+                <div className="pt-4 border-t border-border">
+                  <p className="text-xs font-medium uppercase tracking-[0.5px] text-[#1F1F1F] mb-4">
+                    Serviço oferecido
+                  </p>
+
+                  <div className="grid grid-cols-2 gap-4 mb-5">
+                    <FormField
+                      control={form.control}
+                      name="basePrice"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel className={labelCls}>Preço Base (BRL)</FormLabel>
+                          <FormControl>
+                            <div className="relative">
+                              <span className="absolute left-3 top-3.5 text-muted-foreground text-sm">R$</span>
+                              <Input type="number" className={`${inputCls} pl-9`} style={inputStyle} {...field} />
+                            </div>
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name="deliveryDays"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel className={labelCls}>Prazo (dias)</FormLabel>
+                          <FormControl>
+                            <Input type="number" className={inputCls} style={inputStyle} {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
+
+                  <FormField
+                    control={form.control}
+                    name="categories"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel className={labelCls}>Categorias</FormLabel>
+                        <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 mt-2">
+                          {CATEGORIES.map((cat) => (
+                            <button
+                              key={cat}
+                              type="button"
+                              onClick={() => {
+                                const cur = field.value ?? [];
+                                field.onChange(
+                                  cur.includes(cat) ? cur.filter((c) => c !== cat) : [...cur, cat]
+                                );
+                              }}
+                              className={`p-2.5 border text-xs font-medium transition-colors duration-150 ${
+                                cats?.includes(cat)
+                                  ? "bg-[#0A0A0A] text-white border-[#0A0A0A]"
+                                  : "border-border text-muted-foreground hover:bg-[#F8F8F8] hover:text-foreground"
+                              }`}
+                              style={{ borderRadius: "2px" }}
+                            >
+                              {cat}
+                            </button>
+                          ))}
+                        </div>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
+                    name="tags"
+                    render={({ field }) => (
+                      <FormItem className="mt-4">
+                        <FormLabel className={labelCls}>Tags (opcional)</FormLabel>
+                        <FormControl>
+                          <Input
+                            className={inputCls}
+                            style={inputStyle}
+                            placeholder="Pressione Enter para adicionar..."
+                            value={tagInput}
+                            onChange={(e) => setTagInput(e.target.value)}
+                            onKeyDown={handleAddTag}
+                          />
+                        </FormControl>
+                        <div className="flex flex-wrap gap-2 mt-2">
+                          {(field.value ?? []).map((tag) => (
+                            <span
+                              key={tag}
+                              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium bg-[#0A0A0A] text-white"
+                              style={{ borderRadius: "2px" }}
+                            >
+                              {tag}
+                              <button type="button" onClick={() => removeTag(tag)} className="hover:opacity-70">
+                                <X className="h-3 w-3" />
+                              </button>
+                            </span>
+                          ))}
+                        </div>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+
+                <Button
+                  type="submit"
+                  className="w-full h-12 text-sm font-semibold bg-[#0A0A0A] text-white hover:bg-[#1F1F1F] transition-all duration-200 mt-2"
+                  style={{ borderRadius: "2px" }}
+                  disabled={registerMutation.isPending}
+                >
+                  {registerMutation.isPending ? "Criando perfil..." : "Criar Perfil de Artista"}
+                </Button>
+              </form>
+            </Form>
+
+            <div className="mt-6 pt-6 border-t border-border text-center">
+              <p className="text-sm text-muted-foreground">
+                Já tem uma conta?{" "}
+                <Link href="/login">
+                  <span className="text-[#C9A961] font-semibold hover:underline cursor-pointer">
+                    Entrar
+                  </span>
+                </Link>
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }

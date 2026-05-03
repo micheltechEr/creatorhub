@@ -4,10 +4,10 @@ import {
   useUpdateOrderStatus,
   useGetPaymentByOrder, getGetPaymentByOrderQueryKey,
   useCreateCheckout,
+  getListOrdersQueryKey,
 } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -18,15 +18,14 @@ import {
   Copy, ExternalLink, QrCode, CreditCard, Landmark,
 } from "lucide-react";
 import { toast } from "sonner";
-import { getListOrdersQueryKey } from "@workspace/api-client-react";
 
-const STATUS_COLORS: Record<string, string> = {
-  PROPOSED: "bg-gray-100 text-gray-700",
-  PAYMENT_PENDING: "bg-yellow-100 text-yellow-800",
-  PAID: "bg-green-100 text-green-800",
-  IN_PROGRESS: "bg-blue-100 text-blue-800",
-  DELIVERED: "bg-purple-100 text-purple-800",
-  CANCELLED: "bg-red-100 text-red-800",
+const STATUS_BADGE: Record<string, { text: string; className: string; borderColor: string }> = {
+  PROPOSED:        { text: "Proposto",           className: "text-[#1E5BA1] bg-[#F0F5FB] border-[#D0E2F4]", borderColor: "#1E5BA1" },
+  PAYMENT_PENDING: { text: "Aguard. Pagamento",  className: "text-[#B8860B] bg-[#FFFBF0] border-[#F0D990]", borderColor: "#B8860B" },
+  PAID:            { text: "Pago",               className: "text-[#2D8A45] bg-[#F0F7F2] border-[#B8DFC4]", borderColor: "#2D8A45" },
+  IN_PROGRESS:     { text: "Em Andamento",       className: "text-[#8A6A1B] bg-[#FFFAF0] border-[#E8D5A3]", borderColor: "#C9A961" },
+  DELIVERED:       { text: "Entregue",           className: "text-[#2D8A45] bg-[#F0F7F2] border-[#B8DFC4]", borderColor: "#2D8A45" },
+  CANCELLED:       { text: "Cancelado",          className: "text-[#A53A3A] bg-[#FAF0F0] border-[#E8B8B8]", borderColor: "#A53A3A" },
 };
 
 const STATUS_LABELS: Record<string, string> = {
@@ -66,14 +65,31 @@ const BILLING_TYPES = [
   { value: "CREDIT_CARD", label: "Cartão de Crédito", icon: CreditCard, description: "Via link Asaas" },
 ];
 
+const cardStyle = { borderRadius: "4px", boxShadow: "0 2px 8px rgba(0,0,0,0.06)" };
+
+function StatusBadge({ status }: { status: string }) {
+  const cfg = STATUS_BADGE[status];
+  if (!cfg) return <span className="text-xs text-muted-foreground">{status}</span>;
+  return (
+    <span
+      className={`inline-flex items-center px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.5px] border ${cfg.className}`}
+      style={{ borderRadius: "2px" }}
+    >
+      {cfg.text}
+    </span>
+  );
+}
+
 function formatCpfCnpj(value: string) {
   const digits = value.replace(/\D/g, "").slice(0, 14);
   if (digits.length <= 11) {
-    return digits.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, "$1.$2.$3-$4")
+    return digits
+      .replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, "$1.$2.$3-$4")
       .replace(/(\d{3})(\d{3})(\d{1,3})/, "$1.$2.$3")
       .replace(/(\d{3})(\d{1,3})/, "$1.$2");
   }
-  return digits.replace(/(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})/, "$1.$2.$3/$4-$5")
+  return digits
+    .replace(/(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})/, "$1.$2.$3/$4-$5")
     .replace(/(\d{2})(\d{3})(\d{3})(\d{1,4})/, "$1.$2.$3/$4")
     .replace(/(\d{2})(\d{3})(\d{1,3})/, "$1.$2.$3")
     .replace(/(\d{2})(\d{1,3})/, "$1.$2");
@@ -101,46 +117,52 @@ function CheckoutForm({ orderId, onSuccess }: { orderId: string; onSuccess: () =
   };
 
   return (
-    <Card className="border-primary/30">
-      <CardHeader className="pb-3">
-        <CardTitle className="text-base flex items-center gap-2">
-          <Clock className="h-4 w-4 text-primary" />
+    <div className="bg-white border border-border" style={cardStyle}>
+      <div className="px-5 py-4 border-b border-border">
+        <p className="text-sm font-semibold flex items-center gap-2">
+          <Clock className="h-4 w-4 text-[#C9A961]" />
           Gerar Cobrança Asaas
-        </CardTitle>
-      </CardHeader>
-      <CardContent>
+        </p>
+      </div>
+      <div className="p-5">
         <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="space-y-1">
-            <Label htmlFor="cpfcnpj" className="text-xs font-medium">
-              CPF / CNPJ do Pagador <span className="text-red-500">*</span>
+          <div className="space-y-1.5">
+            <Label className="text-xs font-medium uppercase tracking-[0.5px] text-[#1F1F1F]">
+              CPF / CNPJ do Pagador <span className="text-[#A53A3A]">*</span>
             </Label>
             <Input
-              id="cpfcnpj"
               placeholder="000.000.000-00"
               value={cpfCnpj}
               onChange={(e) => setCpfCnpj(formatCpfCnpj(e.target.value))}
+              className="h-11 border-border text-sm focus-visible:ring-0 focus-visible:border-foreground"
+              style={{ borderRadius: "2px" }}
               required
             />
             <p className="text-xs text-muted-foreground">Obrigatório pela Asaas para emitir a cobrança.</p>
           </div>
 
           <div className="space-y-2">
-            <Label className="text-xs font-medium">Tipo de Cobrança</Label>
-            <div className="grid grid-cols-1 gap-2">
+            <Label className="text-xs font-medium uppercase tracking-[0.5px] text-[#1F1F1F]">
+              Tipo de Cobrança
+            </Label>
+            <div className="space-y-2">
               {BILLING_TYPES.map((bt) => (
                 <button
                   key={bt.value}
                   type="button"
                   onClick={() => setBillingType(bt.value as any)}
-                  className={`flex items-center gap-3 p-3 rounded-lg border text-left transition-colors ${
+                  className={`w-full flex items-center gap-3 p-3 border text-left transition-colors ${
                     billingType === bt.value
-                      ? "border-primary bg-primary/5 text-primary"
+                      ? "border-[#C9A961] bg-[#FFFBF0]"
                       : "border-border hover:border-muted-foreground/40"
                   }`}
+                  style={{ borderRadius: "2px" }}
                 >
-                  <bt.icon className="h-4 w-4 flex-shrink-0" />
+                  <bt.icon className={`h-4 w-4 shrink-0 ${billingType === bt.value ? "text-[#B8860B]" : "text-muted-foreground"}`} />
                   <div>
-                    <p className="text-sm font-medium">{bt.label}</p>
+                    <p className={`text-sm font-medium ${billingType === bt.value ? "text-[#8A6A1B]" : "text-foreground"}`}>
+                      {bt.label}
+                    </p>
                     <p className="text-xs text-muted-foreground">{bt.description}</p>
                   </div>
                 </button>
@@ -148,12 +170,17 @@ function CheckoutForm({ orderId, onSuccess }: { orderId: string; onSuccess: () =
             </div>
           </div>
 
-          <Button type="submit" className="w-full" disabled={checkout.isPending}>
+          <Button
+            type="submit"
+            className="w-full h-11 text-sm font-semibold bg-[#0A0A0A] text-white hover:bg-[#1F1F1F]"
+            style={{ borderRadius: "2px" }}
+            disabled={checkout.isPending}
+          >
             {checkout.isPending ? "Gerando cobrança..." : "Gerar Cobrança"}
           </Button>
         </form>
-      </CardContent>
-    </Card>
+      </div>
+    </div>
   );
 }
 
@@ -162,91 +189,88 @@ function PaymentCard({ payment }: { payment: any }) {
     navigator.clipboard.writeText(text).then(() => toast.success(`${label} copiado!`));
   };
 
+  const statusMap: Record<string, { text: string; className: string }> = {
+    CONFIRMED: { text: "Confirmado", className: "text-[#2D8A45] bg-[#F0F7F2] border-[#B8DFC4]" },
+    PENDING:   { text: "Pendente",   className: "text-[#B8860B] bg-[#FFFBF0] border-[#F0D990]" },
+  };
+  const statusCfg = statusMap[payment.status] ?? { text: payment.status, className: "text-muted-foreground bg-[#F8F8F8] border-border" };
+
   return (
-    <Card>
-      <CardHeader className="pb-3">
-        <CardTitle className="text-base">Pagamento</CardTitle>
-      </CardHeader>
-      <CardContent className="space-y-3 text-sm">
+    <div className="bg-white border border-border" style={cardStyle}>
+      <div className="px-5 py-4 border-b border-border">
+        <p className="text-sm font-semibold">Pagamento</p>
+      </div>
+      <div className="p-5 space-y-3 text-sm">
         <div className="flex justify-between items-center">
           <span className="text-muted-foreground">Status</span>
-          <Badge variant="outline" className={
-            payment.status === "CONFIRMED" ? "bg-green-100 text-green-800" :
-            payment.status === "PENDING" ? "bg-yellow-100 text-yellow-800" :
-            "bg-gray-100 text-gray-700"
-          }>
-            {payment.status === "CONFIRMED" ? "Confirmado" :
-             payment.status === "PENDING" ? "Pendente" : payment.status}
-          </Badge>
+          <span
+            className={`inline-flex items-center px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.5px] border ${statusCfg.className}`}
+            style={{ borderRadius: "2px" }}
+          >
+            {statusCfg.text}
+          </span>
         </div>
-
         <div className="flex justify-between">
           <span className="text-muted-foreground">Tipo</span>
           <span className="font-medium">{payment.billingType ?? payment.provider}</span>
         </div>
-
         <div className="flex justify-between">
           <span className="text-muted-foreground">Valor</span>
-          <span className="font-bold text-primary">{formatCurrency((payment.amount ?? 0) / 100)}</span>
+          <span className="font-bold text-[#C9A961]">{formatCurrency((payment.amount ?? 0) / 100)}</span>
         </div>
-
         <div className="flex justify-between">
           <span className="text-muted-foreground">Criado</span>
           <span>{formatDate(payment.createdAt)}</span>
         </div>
 
-        {/* PIX QR Code */}
         {payment.pixQrCode && (
           <div className="pt-2 space-y-2">
-            <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">QR Code PIX</p>
+            <p className="text-xs font-medium uppercase tracking-[0.5px] text-muted-foreground">QR Code PIX</p>
             <div className="flex justify-center">
               <img
                 src={`data:image/png;base64,${payment.pixQrCode}`}
                 alt="QR Code PIX"
-                className="w-40 h-40 border rounded-lg"
+                className="w-40 h-40 border"
+                style={{ borderRadius: "2px" }}
               />
             </div>
             {payment.pixCopiaECola && (
               <Button
                 variant="outline"
                 size="sm"
-                className="w-full text-xs"
+                className="w-full text-xs border-border"
+                style={{ borderRadius: "2px" }}
                 onClick={() => copyToClipboard(payment.pixCopiaECola, "Código PIX")}
               >
-                <Copy className="h-3 w-3 mr-1" />
-                Copiar código PIX
+                <Copy className="h-3 w-3 mr-1" /> Copiar código PIX
               </Button>
             )}
           </div>
         )}
 
-        {/* Checkout / Invoice URL */}
         {(payment.checkoutUrl || payment.invoiceUrl) && (
           <a
             href={payment.checkoutUrl ?? payment.invoiceUrl}
             target="_blank"
             rel="noopener noreferrer"
-            className="flex items-center justify-center gap-1 text-xs text-primary hover:underline pt-1"
+            className="flex items-center justify-center gap-1 text-xs text-[#C9A961] hover:underline pt-1"
           >
-            <ExternalLink className="h-3 w-3" />
-            Abrir fatura Asaas
+            <ExternalLink className="h-3 w-3" /> Abrir fatura Asaas
           </a>
         )}
 
-        {/* Boleto URL */}
         {payment.boletoUrl && (
           <a
             href={payment.boletoUrl}
             target="_blank"
             rel="noopener noreferrer"
-            className="flex items-center justify-center gap-1 text-xs text-primary hover:underline"
+            className="flex items-center justify-center gap-1 text-xs text-[#C9A961] hover:underline"
           >
-            <ExternalLink className="h-3 w-3" />
-            Visualizar boleto
+            <ExternalLink className="h-3 w-3" /> Visualizar boleto
           </a>
         )}
-      </CardContent>
-    </Card>
+      </div>
+    </div>
   );
 }
 
@@ -279,7 +303,7 @@ export default function OrderDetail({ params }: { params: { id: string } }) {
   if (isLoading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <div className="animate-pulse text-muted-foreground">Carregando pedido...</div>
+        <div className="text-muted-foreground text-sm">Carregando pedido...</div>
       </div>
     );
   }
@@ -287,8 +311,10 @@ export default function OrderDetail({ params }: { params: { id: string } }) {
   if (!order) {
     return (
       <div className="text-center py-16">
-        <p className="text-muted-foreground">Pedido não encontrado</p>
-        <Link href="/orders"><Button variant="outline" className="mt-4">Voltar para Pedidos</Button></Link>
+        <p className="text-muted-foreground mb-4">Pedido não encontrado</p>
+        <Link href="/orders">
+          <Button variant="outline" style={{ borderRadius: "2px" }}>Voltar para Pedidos</Button>
+        </Link>
       </div>
     );
   }
@@ -298,68 +324,83 @@ export default function OrderDetail({ params }: { params: { id: string } }) {
   const daysRemaining = Math.max(0, Math.ceil((deadline.getTime() - now.getTime()) / (1000 * 60 * 60 * 24)));
   const transitions = STATUS_TRANSITIONS[order.status] ?? [];
   const currentStepIndex = STATUS_TIMELINE.indexOf(order.status);
+  const borderColor = STATUS_BADGE[order.status]?.borderColor ?? "#E5E5E5";
 
   return (
     <div className="space-y-6 max-w-4xl">
+      {/* Back + status */}
       <div className="flex items-center gap-3">
         <Link href="/orders">
-          <Button variant="ghost" size="sm">
+          <Button
+            variant="ghost"
+            size="sm"
+            className="text-muted-foreground hover:text-foreground"
+            style={{ borderRadius: "2px" }}
+          >
             <ArrowLeft className="h-4 w-4 mr-1" /> Voltar
           </Button>
         </Link>
-        <Badge className={`${STATUS_COLORS[order.status] ?? ""}`} variant="outline">
-          {STATUS_LABELS[order.status] ?? order.status}
-        </Badge>
+        <StatusBadge status={order.status} />
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Main info */}
-        <div className="lg:col-span-2 space-y-6">
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-xl">{order.title}</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
+        <div className="lg:col-span-2 space-y-5">
+          {/* Order card */}
+          <div
+            className="bg-white border border-border"
+            style={{ ...cardStyle, borderLeft: `4px solid ${borderColor}` }}
+          >
+            <div className="px-6 py-5 border-b border-border">
+              <h2 className="font-serif text-2xl font-semibold text-foreground">{order.title}</h2>
+            </div>
+            <div className="p-6 space-y-5">
+              <div className="grid grid-cols-2 gap-5">
                 <div>
-                  <p className="text-xs text-muted-foreground uppercase tracking-wide mb-1">Cliente</p>
-                  <p className="font-medium">{order.clientName}</p>
-                  <p className="text-sm text-muted-foreground">{order.clientEmail}</p>
+                  <p className="text-xs font-medium uppercase tracking-[0.5px] text-muted-foreground mb-1">Cliente</p>
+                  <p className="text-sm font-semibold text-foreground">{order.clientName}</p>
+                  <p className="text-xs text-muted-foreground">{order.clientEmail}</p>
                 </div>
                 {order.occasion && (
                   <div>
-                    <p className="text-xs text-muted-foreground uppercase tracking-wide mb-1">Ocasião</p>
-                    <p className="font-medium">{order.occasion}</p>
+                    <p className="text-xs font-medium uppercase tracking-[0.5px] text-muted-foreground mb-1">Ocasião</p>
+                    <p className="text-sm font-semibold text-foreground">{order.occasion}</p>
                   </div>
                 )}
                 <div>
-                  <p className="text-xs text-muted-foreground uppercase tracking-wide mb-1">Prazo</p>
-                  <p className="font-medium">{formatDate(order.deadline as unknown as string)}</p>
+                  <p className="text-xs font-medium uppercase tracking-[0.5px] text-muted-foreground mb-1">Prazo</p>
+                  <p className="text-sm font-semibold text-foreground">{formatDate(order.deadline as unknown as string)}</p>
                   {order.status !== "DELIVERED" && order.status !== "CANCELLED" && (
-                    <p className={`text-sm ${daysRemaining <= 2 ? "text-yellow-600 font-medium" : "text-muted-foreground"}`}>
+                    <p className={`text-xs mt-0.5 ${daysRemaining <= 2 ? "text-[#B8860B] font-semibold" : "text-muted-foreground"}`}>
                       {daysRemaining > 0 ? `${daysRemaining} dias restantes` : "Prazo vencido"}
                     </p>
                   )}
                 </div>
                 <div>
-                  <p className="text-xs text-muted-foreground uppercase tracking-wide mb-1">Valor</p>
-                  <p className="text-xl font-bold text-primary">{formatCurrency(order.basePrice)}</p>
+                  <p className="text-xs font-medium uppercase tracking-[0.5px] text-muted-foreground mb-1">Valor</p>
+                  <p className="text-xl font-bold text-[#C9A961]">{formatCurrency(order.basePrice)}</p>
                 </div>
               </div>
 
               {order.description && (
                 <div>
-                  <p className="text-xs text-muted-foreground uppercase tracking-wide mb-1">Descrição</p>
-                  <p className="text-sm">{order.description}</p>
+                  <p className="text-xs font-medium uppercase tracking-[0.5px] text-muted-foreground mb-1">Descrição</p>
+                  <p className="text-sm text-foreground leading-relaxed">{order.description}</p>
                 </div>
               )}
 
               {order.names && order.names.length > 0 && (
                 <div>
-                  <p className="text-xs text-muted-foreground uppercase tracking-wide mb-1">Nomes</p>
+                  <p className="text-xs font-medium uppercase tracking-[0.5px] text-muted-foreground mb-2">Nomes</p>
                   <div className="flex flex-wrap gap-2">
                     {order.names.map((name, i) => (
-                      <Badge key={i} variant="secondary">{name}</Badge>
+                      <span
+                        key={i}
+                        className="inline-flex items-center px-3 py-1 text-xs font-medium bg-[#F8F8F8] border border-border text-foreground"
+                        style={{ borderRadius: "2px" }}
+                      >
+                        {name}
+                      </span>
                     ))}
                   </div>
                 </div>
@@ -367,18 +408,20 @@ export default function OrderDetail({ params }: { params: { id: string } }) {
 
               {order.additionalInstructions && (
                 <div>
-                  <p className="text-xs text-muted-foreground uppercase tracking-wide mb-1">Instruções Adicionais</p>
-                  <p className="text-sm bg-muted/50 rounded-md p-3">{order.additionalInstructions}</p>
+                  <p className="text-xs font-medium uppercase tracking-[0.5px] text-muted-foreground mb-1">Instruções Adicionais</p>
+                  <p className="text-sm bg-[#F8F8F8] border border-border p-3 text-foreground leading-relaxed" style={{ borderRadius: "2px" }}>
+                    {order.additionalInstructions}
+                  </p>
                 </div>
               )}
 
               {order.referenceLinks && order.referenceLinks.length > 0 && (
                 <div>
-                  <p className="text-xs text-muted-foreground uppercase tracking-wide mb-1">Links de Referência</p>
+                  <p className="text-xs font-medium uppercase tracking-[0.5px] text-muted-foreground mb-2">Links de Referência</p>
                   <ul className="space-y-1">
                     {order.referenceLinks.map((link, i) => (
                       <li key={i}>
-                        <a href={link} target="_blank" rel="noopener noreferrer" className="text-sm text-primary hover:underline break-all">
+                        <a href={link} target="_blank" rel="noopener noreferrer" className="text-sm text-[#C9A961] hover:underline break-all">
                           {link}
                         </a>
                       </li>
@@ -386,15 +429,15 @@ export default function OrderDetail({ params }: { params: { id: string } }) {
                   </ul>
                 </div>
               )}
-            </CardContent>
-          </Card>
+            </div>
+          </div>
 
-          {/* Status timeline */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-base">Progresso do Pedido</CardTitle>
-            </CardHeader>
-            <CardContent>
+          {/* Timeline */}
+          <div className="bg-white border border-border" style={cardStyle}>
+            <div className="px-5 py-4 border-b border-border">
+              <p className="text-sm font-semibold">Progresso do Pedido</p>
+            </div>
+            <div className="p-5">
               <div className="flex items-center">
                 {STATUS_TIMELINE.map((status, index) => {
                   const isPast = index < currentStepIndex || order.status === "DELIVERED";
@@ -403,68 +446,44 @@ export default function OrderDetail({ params }: { params: { id: string } }) {
                   return (
                     <div key={status} className="flex items-center flex-1">
                       <div className="flex flex-col items-center">
-                        <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold transition-colors ${
-                          isCancelled ? "bg-red-100 text-red-500" :
-                          isPast ? "bg-primary text-primary-foreground" :
-                          isCurrent ? "bg-primary text-primary-foreground ring-4 ring-primary/20" :
-                          "bg-muted text-muted-foreground"
-                        }`}>
+                        <div
+                          className={`w-8 h-8 flex items-center justify-center text-xs font-bold transition-colors ${
+                            isCancelled
+                              ? "bg-[#FAF0F0] text-[#A53A3A] border border-[#E8B8B8]"
+                              : isPast
+                              ? "bg-[#0A0A0A] text-white"
+                              : isCurrent
+                              ? "bg-[#C9A961] text-white ring-4 ring-[#C9A961]/20"
+                              : "bg-[#F0F0F0] text-muted-foreground"
+                          }`}
+                          style={{ borderRadius: "50%" }}
+                        >
                           {isPast ? <CheckCircle2 className="h-4 w-4" /> : index + 1}
                         </div>
-                        <span className="text-xs text-muted-foreground mt-1 text-center leading-tight max-w-[60px]">
+                        <span className="text-[10px] text-muted-foreground mt-1.5 text-center leading-tight max-w-[58px]">
                           {STATUS_LABELS[status]}
                         </span>
                       </div>
                       {index < STATUS_TIMELINE.length - 1 && (
-                        <div className={`flex-1 h-0.5 mx-1 transition-colors ${isPast ? "bg-primary" : "bg-muted"}`} />
+                        <div
+                          className={`flex-1 h-0.5 mx-1 transition-colors ${
+                            isPast ? "bg-[#0A0A0A]" : "bg-[#E5E5E5]"
+                          }`}
+                        />
                       )}
                     </div>
                   );
                 })}
               </div>
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* Sidebar */}
-        <div className="space-y-4">
-          {/* Checkout form — only shown for PROPOSED orders without a payment yet */}
-          {order.status === "PROPOSED" && !payment && (
-            <CheckoutForm orderId={order.id} onSuccess={invalidate} />
-          )}
-
-          {/* Manual status actions */}
-          {transitions.length > 0 && (
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-base">Ações</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-2">
-                {transitions.map((t) => (
-                  <Button
-                    key={t.to}
-                    variant={t.variant}
-                    className="w-full justify-start"
-                    onClick={() => handleStatusUpdate(t.to)}
-                    disabled={updateMutation.isPending}
-                  >
-                    <t.icon className="h-4 w-4 mr-2" />
-                    {t.label}
-                  </Button>
-                ))}
-              </CardContent>
-            </Card>
-          )}
-
-          {/* Payment card */}
-          {payment && <PaymentCard payment={payment} />}
+            </div>
+          </div>
 
           {/* Metadata */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-base">Informações</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-2 text-sm">
+          <div className="bg-white border border-border" style={cardStyle}>
+            <div className="px-5 py-4 border-b border-border">
+              <p className="text-sm font-semibold">Informações</p>
+            </div>
+            <div className="p-5 space-y-3 text-sm">
               <div className="flex justify-between">
                 <span className="text-muted-foreground">Criado em</span>
                 <span>{formatDate(order.createdAt as unknown as string)}</span>
@@ -475,10 +494,48 @@ export default function OrderDetail({ params }: { params: { id: string } }) {
               </div>
               <div className="flex justify-between">
                 <span className="text-muted-foreground">ID</span>
-                <span className="font-mono text-xs text-muted-foreground truncate max-w-[120px]">{order.id}</span>
+                <span className="font-mono text-xs text-muted-foreground truncate max-w-[160px]">{order.id}</span>
               </div>
-            </CardContent>
-          </Card>
+            </div>
+          </div>
+        </div>
+
+        {/* Sidebar */}
+        <div className="space-y-4">
+          {order.status === "PROPOSED" && !payment && (
+            <CheckoutForm orderId={order.id} onSuccess={invalidate} />
+          )}
+
+          {transitions.length > 0 && (
+            <div className="bg-white border border-border" style={cardStyle}>
+              <div className="px-5 py-4 border-b border-border">
+                <p className="text-sm font-semibold">Ações</p>
+              </div>
+              <div className="p-5 space-y-2">
+                {transitions.map((t) => (
+                  <Button
+                    key={t.to}
+                    variant={t.variant}
+                    className={`w-full justify-start text-sm font-medium ${
+                      t.variant === "default"
+                        ? "bg-[#0A0A0A] text-white hover:bg-[#1F1F1F]"
+                        : t.variant === "outline"
+                        ? "border-border text-foreground hover:bg-[#F8F8F8]"
+                        : ""
+                    }`}
+                    style={{ borderRadius: "2px" }}
+                    onClick={() => handleStatusUpdate(t.to)}
+                    disabled={updateMutation.isPending}
+                  >
+                    <t.icon className="h-4 w-4 mr-2" />
+                    {t.label}
+                  </Button>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {payment && <PaymentCard payment={payment} />}
         </div>
       </div>
     </div>

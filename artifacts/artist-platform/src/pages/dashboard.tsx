@@ -62,12 +62,14 @@ export default function Dashboard() {
   const { data: stats, isLoading: statsLoading } = useGetDashboardStats({
     query: { queryKey: getGetDashboardStatsQueryKey() },
   });
-  const { data: recentData } = useGetRecentOrders({
-    query: { queryKey: getGetRecentOrdersQueryKey() },
-  });
-  const { data: earningsData } = useGetEarnings({
-    query: { queryKey: getGetEarningsQueryKey() },
-  });
+  const { data: recentData } = useGetRecentOrders(
+    {},
+    { query: { queryKey: getGetRecentOrdersQueryKey() } },
+  );
+  const { data: earningsData } = useGetEarnings(
+    {},
+    { query: { queryKey: getGetEarningsQueryKey() } },
+  );
   const toggleMutation = useToggleAvailability();
 
   const handleToggleAvailability = async () => {

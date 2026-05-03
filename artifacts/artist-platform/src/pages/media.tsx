@@ -53,7 +53,7 @@ export default function Media() {
     }
 
     try {
-      await uploadMutation.mutateAsync({ data: file as any });
+      await uploadMutation.mutateAsync({ data: { file } });
       queryClient.invalidateQueries({ queryKey: getListMediaQueryKey() });
       toast.success("Video enviado com sucesso!");
     } catch {

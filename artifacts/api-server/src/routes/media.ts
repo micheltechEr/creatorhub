@@ -57,12 +57,9 @@ router.get("/media", requireAuth, async (req: AuthRequest, res) => {
   });
 });
 
-router.post("/media", requireAuth, upload.any(), async (req: AuthRequest, res) => {
-  const files = (req.files as Express.Multer.File[] | undefined) ?? [];
-  const file = req.file ?? files.find((item) => item.fieldname === "file") ?? files.find((item) => item.fieldname === "data") ?? files[0];
+router.post("/media", requireAuth, upload.single("file"), async (req: AuthRequest, res) => {
+  const file = req.file;
   if (!file) {
-    const multipartKeys = req.body && typeof req.body === "object" ? Object.keys(req.body).join(", ") : "";
-    req.log?.warn?.({ multipartKeys, hasBody: !!req.body }, "missing upload file");
     res.status(400).json({ error: "No file", message: "Nenhum arquivo enviado" });
     return;
   }
