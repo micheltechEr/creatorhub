@@ -4,21 +4,17 @@ services:
       context: .
       dockerfile: Dockerfile
       target: runner
-    image: artistflow:latest
-    container_name: artistflow
     restart: unless-stopped
     ports:
       - "8080:8080"
     environment:
       NODE_ENV: production
-      PORT: 8080
       DATABASE_URL: ${DATABASE_URL}
       JWT_SECRET: ${JWT_SECRET}
       REFRESH_SECRET: ${REFRESH_SECRET}
       ASAAS_API_KEY: ${ASAAS_API_KEY}
       ASAAS_ENV: ${ASAAS_ENV:-sandbox}
     volumes:
-      # Persist uploaded videos between container restarts
       - uploads:/app/uploads
     healthcheck:
       test: ["CMD", "wget", "-qO-", "http://localhost:8080/api/healthz"]

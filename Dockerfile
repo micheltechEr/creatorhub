@@ -17,9 +17,9 @@ COPY package.json pnpm-workspace.yaml pnpm-lock.yaml \
      tsconfig.base.json tsconfig.json ./
 
 # Copy only the packages that are needed for the build
-COPY lib/           lib/
-COPY scripts/       scripts/
-COPY artifacts/api-server/      artifacts/api-server/
+COPY lib/ lib/
+COPY scripts/ scripts/
+COPY artifacts/api-server/ artifacts/api-server/
 COPY artifacts/artist-platform/ artifacts/artist-platform/
 
 # Install all dependencies (dev included — needed for build tools)
