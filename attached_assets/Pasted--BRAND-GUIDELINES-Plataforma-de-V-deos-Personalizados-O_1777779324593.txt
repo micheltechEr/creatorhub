@@ -1,0 +1,803 @@
+# BRAND GUIDELINES
+## Plataforma de Vídeos Personalizados
+
+---
+
+## OVERVIEW
+
+Marketplace profissional de vídeos personalizados que conecta artistas de elite com clientes corporativos, influencers e personalidades que buscam conteúdo customizado de alta qualidade.
+
+**Tone of Voice**: Sofisticado, confiável, preciso. Sem informalidade.
+**Visual Identity**: Minimalista, elegante, estruturado. Tipografia refinada.
+
+---
+
+## 1. PALETA DE CORES
+
+### Primárias
+
+| Nome | Hex | RGB | Uso |
+|------|-----|-----|-----|
+| **Black Pro** | #0A0A0A | 10, 10, 10 | Texto principal, CTA primary, estrutura |
+| **Charcoal** | #1F1F1F | 31, 31, 31 | Texto secundário, backgrounds dark |
+| **Gold Standard** | #C9A961 | 201, 169, 97 | Accents, highlights, premium elements |
+| **Off White** | #F8F8F8 | 248, 248, 248 | Backgrounds secundários |
+| **White** | #FFFFFF | 255, 255, 255 | Cards, surface principal |
+
+### Status Colors (Corporate Palette)
+
+| Estado | Hex | RGB | Uso |
+|--------|-----|-----|-----|
+| Success | #2D8A45 | 45, 138, 69 | Aprovado, confirmado |
+| Error | #A53A3A | 165, 58, 58 | Erro, crítico |
+| Warning | #B8860B | 184, 134, 11 | Atenção, pendente |
+| Info | #1E5BA1 | 30, 91, 161 | Informação, link |
+
+---
+
+## 2. TIPOGRAFIA
+
+### Fonte Principal: **Plus Jakarta Sans**
+- Moderna, geométrica, profissional
+- Pesos: Regular (400), Medium (500), SemiBold (600), Bold (700)
+- Excelente legibilidade em telas
+- Usado em: body, UI elements
+
+### Fonte Complementar: **Crimson Text**
+- Serif elegante, clássica
+- Pesos: Regular (400), SemiBold (600)
+- Usado apenas em: títulos principais (H1), hero section, quoted text
+
+### Scale Tipográfica
+
+```
+H1 (Hero Title)
+Font: Crimson Text Bold 56px / Desktop
+       Crimson Text Bold 40px / Mobile
+Line-height: 1.1
+Letter-spacing: -1px
+Color: #0A0A0A
+Margin-bottom: 24px
+
+H2 (Section Title)
+Font: Plus Jakarta Sans Bold 36px
+Line-height: 1.2
+Letter-spacing: -0.5px
+Color: #0A0A0A
+Margin-bottom: 20px
+
+H3 (Subsection)
+Font: Plus Jakarta Sans SemiBold 24px
+Line-height: 1.3
+Color: #1F1F1F
+Margin-bottom: 16px
+
+Body Text
+Font: Plus Jakarta Sans Regular 16px
+Line-height: 1.6
+Color: #1F1F1F
+Letter-spacing: 0.3px
+
+Small Text / Labels
+Font: Plus Jakarta Sans Medium 13px
+Line-height: 1.5
+Color: #6D6D6D
+Letter-spacing: 0.5px
+Text-transform: uppercase
+```
+
+---
+
+## 3. COMPONENTES VISUAIS
+
+### Buttons
+
+#### Primary Button
+```
+Padding: 14px 32px
+Background: #0A0A0A
+Text: #FFFFFF, Plus Jakarta Sans SemiBold 14px
+Border-radius: 2px (minimal)
+Border: none
+Cursor: pointer
+Transition: 200ms ease
+
+States:
+- Default: background #0A0A0A
+- Hover: background #1F1F1F, shadow 0 6px 16px rgba(10,10,10,0.12)
+- Active: background #000000
+- Disabled: background #E5E5E5, cursor not-allowed, text #999999
+```
+
+#### Secondary Button (Gold)
+```
+Padding: 14px 32px
+Background: transparent
+Text: #C9A961, Plus Jakarta Sans SemiBold 14px
+Border: 1.5px solid #C9A961
+Border-radius: 2px
+Transition: 200ms ease
+
+States:
+- Hover: background #C9A961, text #FFFFFF
+- Active: background #B8860B, border #B8860B
+```
+
+#### Tertiary Button (Text)
+```
+Padding: 8px 16px
+Background: transparent
+Text: #1E5BA1, Plus Jakarta Sans SemiBold 14px
+Border: none
+Text-decoration: underline (on hover)
+
+States:
+- Hover: color #1F1F1F, text-decoration underline
+```
+
+### Cards
+
+#### Artist Profile Card
+```
+Width: 340px (marketplace grid)
+Background: #FFFFFF
+Border: 1px solid #E5E5E5
+Border-radius: 4px
+Box-shadow: 0 2px 8px rgba(0,0,0,0.06)
+Padding: 0 (images full-bleed)
+Transition: all 300ms cubic-bezier(0.25, 0.46, 0.45, 0.94)
+
+On Hover:
+- Box-shadow: 0 12px 32px rgba(0,0,0,0.12)
+- Transform: translateY(-2px)
+
+Structure:
+┌─────────────────────────────┐
+│ [Portfolio Image 340x200]    │ (16:10 aspect)
+├─────────────────────────────┤
+│ [Avatar Circle 56x56]        │
+│ Artist Name (Serif, 20px)    │
+│ Category Badges (3-4)        │
+│ ⭐ 4.8 · 127 projects        │
+│ From R$ 500                  │
+│ [Book Now] [More Info]       │
+└─────────────────────────────┘
+```
+
+#### Order Status Card
+```
+Background: #FFFFFF
+Border-left: 4px solid (color by status)
+Padding: 20px 24px
+Border-radius: 2px
+Box-shadow: 0 2px 8px rgba(0,0,0,0.06)
+
+Status Colors (left border):
+- Proposed: #1E5BA1 (Info Blue)
+- Pending Payment: #B8860B (Warning)
+- Paid: #2D8A45 (Success)
+- In Progress: #C9A961 (Gold)
+- Delivered: #2D8A45 (Success)
+- Cancelled: #A53A3A (Error)
+
+Content:
+- Order ID · Status Badge · Date
+- Client name · Artist name (smaller text)
+- Progress bar (timeline visual)
+- Action buttons (bottom)
+```
+
+### Forms & Inputs
+
+#### Text Input
+```
+Height: 48px
+Padding: 12px 16px
+Background: #FFFFFF
+Border: 1px solid #E5E5E5
+Border-radius: 2px
+Font: Plus Jakarta Sans Regular 14px
+Color: #1F1F1F
+
+States:
+- Focus: border #0A0A0A, box-shadow 0 0 0 3px rgba(10,10,10,0.05)
+- Disabled: background #F8F8F8, color #999999
+- Error: border #A53A3A, box-shadow 0 0 0 3px rgba(165,58,58,0.1)
+
+Placeholder: color #6D6D6D, font-weight 400
+```
+
+#### Select Dropdown
+```
+Same as Input
+Arrow icon: #6D6D6D, positioned right
+Option hover: background #F8F8F8
+```
+
+#### Textarea
+```
+Same styling as Input
+Min-height: 120px
+Font-family: monospace for code
+Resize: vertical only
+```
+
+#### Label & Helper Text
+```
+Label:
+- Font: Plus Jakarta Sans Medium 13px
+- Color: #1F1F1F
+- Margin-bottom: 6px
+
+Helper Text:
+- Font: Plus Jakarta Sans Regular 12px
+- Color: #6D6D6D
+- Margin-top: 4px
+
+Error Message:
+- Font: Plus Jakarta Sans Regular 12px
+- Color: #A53A3A
+- Icon: alert-circle (16px)
+```
+
+### Badges & Tags
+
+#### Status Badge
+```
+Padding: 6px 12px
+Border-radius: 2px
+Font: Plus Jakarta Sans Medium 12px
+Text-transform: uppercase
+Letter-spacing: 0.5px
+
+Colors:
+- Proposed: text #1E5BA1, bg #F0F5FB
+- Pending: text #B8860B, bg #FFFBF0
+- Paid: text #2D8A45, bg #F0F7F2
+- In Progress: text #C9A961, bg #FFFAF0
+- Delivered: text #2D8A45, bg #F0F7F2
+- Cancelled: text #A53A3A, bg #FAF0F0
+```
+
+#### Category Tag
+```
+Padding: 8px 14px
+Background: #ECECEC
+Text: #1F1F1F
+Border-radius: 2px
+Font: Plus Jakarta Sans Regular 13px
+Cursor: pointer
+
+On Hover: background #DDD
+On Selected: background #0A0A0A, text #FFFFFF
+```
+
+### Pagination
+
+```
+Button Size: 36x36px
+Font: Plus Jakarta Sans Regular 14px
+Border-radius: 2px
+
+Default: 
+- Background: transparent
+- Border: 1px solid #E5E5E5
+- Color: #1F1F1F
+
+Active:
+- Background: #0A0A0A
+- Color: #FFFFFF
+- Border: 1px solid #0A0A0A
+
+Hover:
+- Background: #F8F8F8
+```
+
+### Navigation
+
+#### Top Bar
+```
+Height: 64px (mobile), 72px (desktop)
+Background: #FFFFFF
+Border-bottom: 1px solid #E5E5E5
+Padding: 0 24px (mobile), 0 40px (desktop)
+Position: sticky
+Box-shadow: 0 2px 4px rgba(0,0,0,0.02)
+
+Logo: 32px height, dark version
+Menu items spacing: 32px between items
+Active item: text #0A0A0A bold, underline #C9A961
+
+User menu: avatar 40x40px circle, with border
+```
+
+#### Sidebar (Desktop)
+```
+Width: 280px
+Background: #F8F8F8
+Border-right: 1px solid #E5E5E5
+Padding: 24px 20px
+Position: fixed or sticky
+Font: Plus Jakarta Sans Regular 14px
+
+Menu Item:
+- Padding: 12px 16px
+- Color: #6D6D6D
+- Border-radius: 2px
+- Cursor: pointer
+
+Active Menu Item:
+- Background: #0A0A0A
+- Color: #FFFFFF
+- Font-weight: 600
+
+Hover:
+- Background: #E5E5E5
+```
+
+### Loading & Skeleton
+
+#### Loading Spinner
+```
+Size: 32px (standard), 24px (small), 48px (large)
+Color: #0A0A0A
+Animation: rotate 600ms linear infinite
+Stroke-width: 2px
+```
+
+#### Skeleton Loader
+```
+Background: linear-gradient(
+  90deg,
+  #FFFFFF 0%,
+  #F8F8F8 50%,
+  #FFFFFF 100%
+)
+Background-size: 200% 100%
+Animation: shimmer 1.5s infinite
+Border-radius: 2px
+```
+
+---
+
+## 4. SPACING SYSTEM
+
+```
+2px    - xs (minimal gaps)
+4px    - sm (tight spacing)
+8px    - md (compact)
+12px   - lg (standard)
+16px   - xl (comfortable)
+20px   - 2xl (generous)
+24px   - 3xl (spacious)
+32px   - 4xl (large sections)
+40px   - 5xl (major sections)
+48px   - 6xl (hero spacing)
+64px   - 7xl (viewport-sized)
+```
+
+**Application:**
+- Card padding: 24px (desktop), 16px (mobile)
+- Modal padding: 32px (desktop), 24px (mobile)
+- Section gaps: 48px (desktop), 32px (mobile)
+- Container sides: 40px (desktop), 24px (tablet), 16px (mobile)
+
+---
+
+## 5. SHADOWS & DEPTH
+
+```
+Elevation 1 (subtle):
+box-shadow: 0 2px 8px rgba(0,0,0,0.06)
+Used in: cards, buttons on hover
+
+Elevation 2 (medium):
+box-shadow: 0 6px 16px rgba(0,0,0,0.12)
+Used in: modals, floating elements, dropdown menus
+
+Elevation 3 (prominent):
+box-shadow: 0 12px 32px rgba(0,0,0,0.12)
+Used in: important modals, tooltips, popovers
+
+Elevation 4 (hero):
+box-shadow: 0 20px 48px rgba(0,0,0,0.15)
+Used in: hero sections, featured content
+```
+
+---
+
+## 6. BORDER RADIUS
+
+```
+2px   - inputs, buttons, small UI
+4px   - cards, modals, larger components
+6px   - medium containers
+8px   - large elements
+0px   - images, avatars (mostly square/circle)
+```
+
+---
+
+## 7. TRANSITIONS & ANIMATIONS
+
+### Standard Easing
+```
+Fast: 150ms cubic-bezier(0.4, 0, 0.6, 1)
+Standard: 200ms cubic-bezier(0.25, 0.46, 0.45, 0.94)
+Smooth: 300ms cubic-bezier(0.25, 0.46, 0.45, 0.94)
+Slow: 400ms ease-in-out
+```
+
+### Hover Effects
+
+**Button Hover:**
+- Shadow increase (Elevation 1 → Elevation 2)
+- Subtle transform: translateY(-1px)
+- Duration: 200ms
+
+**Card Hover:**
+- Shadow increase (Elevation 1 → Elevation 3)
+- Transform: translateY(-4px)
+- Duration: 300ms
+
+**Link Hover:**
+- Color change to #C9A961
+- Underline appears (2px dashed)
+- Duration: 200ms
+
+### Focus States (Accessibility)
+```css
+/* Buttons */
+outline: 2px solid #0A0A0A
+outline-offset: 2px
+
+/* Inputs */
+box-shadow: 0 0 0 3px rgba(10, 10, 10, 0.1)
+border-color: #0A0A0A
+```
+
+---
+
+## 8. ICONOGRAPHY
+
+**Library:** Feather Icons (customizado para 2px stroke)
+
+**Sizes:**
+- Small: 16px (inline text, badges)
+- Standard: 24px (buttons, navs)
+- Large: 32px (hero, features)
+- XL: 48px (empty states)
+
+**Color:**
+- Primary: #0A0A0A
+- Secondary: #6D6D6D
+- Accent: #C9A961
+- Status: color by status type
+
+**Common Icons:**
+```
+Navigation:
+  - home (house icon)
+  - search (magnifying glass)
+  - orders (clipboard-list)
+  - profile (user-circle)
+  - messages (message-circle)
+  - settings (settings)
+  - logout (log-out)
+
+Status:
+  - success (check-circle)
+  - error (alert-circle)
+  - warning (alert-triangle)
+  - info (info)
+
+Actions:
+  - edit (edit-2)
+  - delete (trash-2)
+  - upload (upload)
+  - download (download)
+  - share (share-2)
+  - more (more-vertical)
+  - expand (chevron-down)
+
+Payment:
+  - card (credit-card)
+  - money (dollar-sign)
+  - bank (building-2)
+```
+
+---
+
+## 9. LAYOUT GRID
+
+### Breakpoints
+```
+Mobile:   320px - 639px
+Tablet:   640px - 1023px
+Desktop:  1024px - 1439px
+Wide:     1440px+
+```
+
+### Container Sizes
+```
+Mobile:   100% - 16px padding
+Tablet:   100% - 24px padding
+Desktop:  1200px centered
+Wide:     1400px centered
+```
+
+### Grid System
+```
+Desktop: 12 columns, 24px gutter
+Tablet:  8 columns, 20px gutter
+Mobile:  4 columns, 16px gutter
+```
+
+---
+
+## 10. HERO SECTION
+
+```
+Desktop:
+- Height: 600px (image) + 200px (content below)
+- Background: white
+- Image positioning: 60% width, right-aligned
+- Content: left-aligned, 40% width
+- Main title: Crimson Text 56px, #0A0A0A
+- Subtitle: Plus Jakarta Sans Regular 18px, #6D6D6D
+- CTA button: Primary button, uppercase
+
+Mobile:
+- Stack vertical
+- Height: 400px (image) + 300px (content)
+- Image: 100% width
+- Content: center-aligned
+- Title: Crimson Text 40px
+```
+
+---
+
+## 11. MARKETPLACE GRID
+
+**Desktop (3 columns):**
+```
+[340px Card] [gap 24px] [340px Card] [gap 24px] [340px Card]
+```
+
+**Tablet (2 columns):**
+```
+[calc(50% - 12px)] [gap 24px] [calc(50% - 12px)]
+```
+
+**Mobile (1 column):**
+```
+[100%]
+Horizontal scroll for featured
+```
+
+**Filters:**
+- Sidebar left (desktop), top (mobile)
+- Width: 240px (desktop)
+- Sticky positioning
+
+---
+
+## 12. ACCESSIBILITY
+
+### Color Contrast Ratios
+- Body text: 4.5:1 minimum (WCAG AA)
+- Large text (18px+): 3:1 minimum
+- UI components: 3:1 minimum
+
+### Focus Management
+- All interactive elements: visible focus
+- Focus ring: 2px solid, 2px offset
+- Tab order: logical, left-to-right
+
+### Semantic HTML
+- Use `<button>` for buttons
+- Use `<a>` for navigation
+- Use `<form>`, `<label>`, `<input>`
+- Use heading hierarchy (h1, h2, h3)
+
+### ARIA Labels
+- Images: alt text sempre
+- Buttons without text: aria-label
+- Modals: aria-modal="true"
+- Panels: aria-hidden on backdrop
+
+---
+
+## 13. DARK MODE (Future, Optional)
+
+```
+Background: #1A1A1A
+Surface: #262626
+Text primary: #F5F5F5
+Text secondary: #B0B0B0
+Border: #404040
+Gold: #D4AF37 (lighter)
+Shadows: darker, more opacity
+```
+
+---
+
+## 14. CSS VARIABLES
+
+```css
+:root {
+  /* Colors */
+  --color-black: #0A0A0A;
+  --color-charcoal: #1F1F1F;
+  --color-gold: #C9A961;
+  --color-off-white: #F8F8F8;
+  --color-white: #FFFFFF;
+  --color-gray: #6D6D6D;
+  --color-border: #E5E5E5;
+  
+  --color-success: #2D8A45;
+  --color-error: #A53A3A;
+  --color-warning: #B8860B;
+  --color-info: #1E5BA1;
+  
+  /* Spacing */
+  --space-xs: 2px;
+  --space-sm: 4px;
+  --space-md: 8px;
+  --space-lg: 12px;
+  --space-xl: 16px;
+  --space-2xl: 20px;
+  --space-3xl: 24px;
+  --space-4xl: 32px;
+  --space-5xl: 40px;
+  
+  /* Typography */
+  --font-family-body: "Plus Jakarta Sans", sans-serif;
+  --font-family-heading: "Crimson Text", serif;
+  
+  --font-size-h1: 56px;
+  --font-size-h2: 36px;
+  --font-size-h3: 24px;
+  --font-size-body: 16px;
+  --font-size-small: 13px;
+  
+  /* Border Radius */
+  --radius-sm: 2px;
+  --radius-md: 4px;
+  --radius-lg: 6px;
+  --radius-xl: 8px;
+  
+  /* Shadows */
+  --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.06);
+  --shadow-md: 0 6px 16px rgba(0, 0, 0, 0.12);
+  --shadow-lg: 0 12px 32px rgba(0, 0, 0, 0.12);
+  --shadow-xl: 0 20px 48px rgba(0, 0, 0, 0.15);
+  
+  /* Transitions */
+  --transition-fast: 150ms cubic-bezier(0.4, 0, 0.6, 1);
+  --transition-base: 200ms cubic-bezier(0.25, 0.46, 0.45, 0.94);
+  --transition-smooth: 300ms cubic-bezier(0.25, 0.46, 0.45, 0.94);
+  --transition-slow: 400ms ease-in-out;
+}
+```
+
+---
+
+## 15. VISUAL PATTERNS
+
+### Card Variation: Artista em Destaque
+```
+Height: 280px
+Layout: Horizontal (image left, content right)
+Image: 50% width, cover
+Content: 50% width, 32px padding
+Background: linear-gradient (gold accent bottom)
+Border-left: 4px solid #C9A961
+CTA: Secondary button (gold)
+```
+
+### Empty State
+```
+Icon: 64px, #C9A961
+Title: Plus Jakarta Sans SemiBold 20px, #0A0A0A
+Description: Plus Jakarta Sans Regular 14px, #6D6D6D
+CTA Button: Secondary button (gold)
+
+Example:
+┌────────────────────────────┐
+│         [64px Icon]        │
+│                            │
+│    No Projects Yet         │
+│  Start by creating your    │
+│  first project now         │
+│                            │
+│    [Create Project]        │
+└────────────────────────────┘
+```
+
+### Timeline (Order Progress)
+```
+Visual: Vertical line, circles at points
+Circle size: 12px (completed), 16px (current)
+Line color: #E5E5E5
+Completed: #0A0A0A background, white center
+Current: #C9A961 background with pulse animation
+Pending: #E5E5E5 background
+
+Labels: Plus Jakarta Sans Regular 12px, #6D6D6D
+```
+
+---
+
+## 16. PHOTOGRAPHY & IMAGERY
+
+**Style**: Profissional, limpo, sem filtros vibrantes
+- Contrast alto
+- Lighting: natural ou estúdio
+- Cores: natural ou em B&W para uniformidade
+- Aspect ratios:
+  - Hero: 16:10
+  - Cards: 16:9
+  - Avatars: 1:1 (circle)
+
+**Image Guidelines:**
+- Sem watermarks
+- Filesize: otimizado (WebP preferred)
+- Sempre com alt text
+- Lazy loading em listas
+
+---
+
+## 17. EXEMPLO VISUAL: PÁGINA DE ARTISTA
+
+```
+┌──────────────────────────────────────────────┐
+│ [NAVBAR] Logo | Buscar | Dashboard | Perfil  │
+└──────────────────────────────────────────────┘
+
+┌──────────────────────────────────────────────┐
+│                                              │
+│  [Cover Image 100% width, 300px height]      │
+│                                              │
+│     [Avatar 80px]                            │
+│     Artist Name (Serif 32px)                 │
+│     Category | ⭐ 4.8 (127 projects)          │
+│     Brief bio in regular text                │
+│     [Book Now] [More Info]                   │
+│                                              │
+└──────────────────────────────────────────────┘
+
+PORTFOLIO SECTION
+┌─────────────┬─────────────┬─────────────┐
+│   [Card]    │   [Card]    │   [Card]    │
+└─────────────┴─────────────┴─────────────┘
+```
+
+---
+
+## 18. CHECKLIST PARA DESENVOLVIMENTO
+
+- [ ] Fonts imported (Plus Jakarta Sans, Crimson Text)
+- [ ] Color tokens defined em CSS variables
+- [ ] Spacing system implemented
+- [ ] Button styles (all states)
+- [ ] Form inputs (all states)
+- [ ] Cards and containers
+- [ ] Navigation styling
+- [ ] Modals and overlays
+- [ ] Loading states
+- [ ] Empty states
+- [ ] Error states
+- [ ] Focus indicators (accessibility)
+- [ ] Responsive breakpoints tested
+- [ ] Dark mode CSS variables (if needed)
+- [ ] Animations smooth and performant
+
+---
+
+## PALETA VISUAL EM RESUMO
+
+**Cores Principais**: Preto profundo + Ouro sofisticado
+**Tipografia**: Clássico (serif) + Moderno (sans-serif)
+**Estilo**: Minimalista, corporativo, sofisticado
+**Tom**: Confiável, elegante, preciso
