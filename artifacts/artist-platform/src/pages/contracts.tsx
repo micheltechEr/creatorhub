@@ -356,8 +356,14 @@ function UploadZone({ onUploaded }: { onUploaded: () => void }) {
   const inputRef = useRef<HTMLInputElement>(null);
 
   const handleUpload = async () => {
-    if (!file) return toast.error("Selecione um arquivo");
-    if (!title.trim()) return toast.error("Informe o título do contrato");
+    if (!file) {
+      toast.error("Selecione um arquivo");
+      return;
+    }
+    if (!title.trim()) {
+      toast.error("Informe o título do contrato");
+      return;
+    }
 
     setUploading(true);
     try {
