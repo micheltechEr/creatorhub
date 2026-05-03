@@ -186,7 +186,7 @@ router.post("/auth/login", authLimiter, async (req, res) => {
   // Use constant-time comparison to prevent timing attacks
   const dummyHash =
     "$2a$12$invalidhashfortimingprotectionxxxxxxxxxxxxxxxxxxxxxxxx";
-  const match = artist
+  const match = artist?.hashedPassword
     ? await bcrypt.compare(password, artist.hashedPassword)
     : await bcrypt.compare(password, dummyHash).then(() => false);
 

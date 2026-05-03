@@ -31,7 +31,7 @@ router.get("/admin/stats", async (_req, res) => {
     db
       .select({ count: count() })
       .from(artistsTable)
-      .where(eq((artistsTable as any).isActive, true)),
+      .where(eq(artistsTable.availability, true)),
     db.select({ count: count() }).from(ordersTable),
     db
       .select({ status: ordersTable.status, count: count() })
@@ -48,7 +48,7 @@ router.get("/admin/stats", async (_req, res) => {
         name: artistsTable.name,
         email: artistsTable.email,
         createdAt: artistsTable.createdAt,
-        isActive: (artistsTable as any).isActive,
+        availability: artistsTable.availability,
       })
       .from(artistsTable)
       .orderBy(sql`${artistsTable.createdAt} DESC`)
@@ -173,7 +173,6 @@ router.patch("/admin/artists/:id/suspend", async (req, res) => {
   const [artist] = await db
     .update(artistsTable)
     .set({
-      isActive: false as any,
       suspendedAt: new Date() as any,
       suspendedReason: (reason ?? "Suspenso pelo administrador") as any,
       availability: false,
@@ -195,7 +194,6 @@ router.patch("/admin/artists/:id/activate", async (req, res) => {
   const [artist] = await db
     .update(artistsTable)
     .set({
-      isActive: true as any,
       suspendedAt: null as any,
       suspendedReason: null as any,
       updatedAt: new Date(),
