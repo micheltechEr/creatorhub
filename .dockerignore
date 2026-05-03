@@ -1,0 +1,40 @@
+# Dependencies — never copy these; the builder installs from scratch
+node_modules
+**/node_modules
+
+# Build outputs — the builder creates fresh ones
+**/dist
+artifacts/artist-platform/dist
+artifacts/api-server/dist
+
+# Generated code — codegen runs inside the builder
+lib/api-zod/src/generated
+lib/api-client-react/src/generated
+
+# Dev / editor artifacts
+.git
+.gitignore
+**/.env
+**/.env.*
+*.log
+
+# Replit specific
+.replit
+replit.nix
+.upm
+.cache
+.local
+**/.local
+attached_assets
+
+# OS artifacts
+.DS_Store
+Thumbs.db
+
+# Test & CI artifacts
+coverage
+**/*.test.ts
+**/*.spec.ts
+
+# Uploads (runtime data — mount a volume instead)
+uploads/
