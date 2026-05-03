@@ -22,7 +22,7 @@ function StarRating({ rating }: { rating: number }) {
 }
 
 export default function Reviews() {
-  const { data: artist } = useGetMe(undefined, {
+  const { data: artist } = useGetMe({
     query: { queryKey: getGetMeQueryKey() },
   });
 
@@ -50,13 +50,13 @@ export default function Reviews() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-3xl font-bold tracking-tight">Avaliacoes</h1>
+        <h1 className="text-4xl font-bold tracking-tight">Avaliacoes</h1>
         <p className="text-muted-foreground mt-1">{total} avaliaco{total !== 1 ? "es" : "ao"} recebidas</p>
       </div>
 
       {/* Rating summary */}
       {total > 0 && (
-        <Card>
+        <Card className="rounded-2xl border-border/70 shadow-sm">
           <CardContent className="p-6">
             <div className="flex items-start gap-8">
               <div className="text-center">
@@ -92,7 +92,7 @@ export default function Reviews() {
           ))}
         </div>
       ) : reviews.length === 0 ? (
-        <Card>
+        <Card className="rounded-2xl border-border/70 shadow-sm">
           <CardContent className="py-16 text-center">
             <Star className="h-12 w-12 text-muted-foreground/30 mx-auto mb-3" />
             <p className="text-muted-foreground text-lg">Nenhuma avaliacao ainda</p>
@@ -104,7 +104,7 @@ export default function Reviews() {
       ) : (
         <div className="space-y-4">
           {reviews.map((review) => (
-            <Card key={review.id}>
+            <Card key={review.id} className="rounded-2xl border-border/70 shadow-sm">
               <CardContent className="p-5">
                 <div className="flex items-start justify-between gap-4">
                   <div className="flex-1">

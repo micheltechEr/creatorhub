@@ -46,17 +46,17 @@ export default function Orders() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Pedidos</h1>
+          <h1 className="text-4xl font-bold tracking-tight">Pedidos</h1>
           <p className="text-muted-foreground mt-1">
             {data?.total ?? 0} pedido{(data?.total ?? 0) !== 1 ? "s" : ""} no total
           </p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 rounded-2xl bg-card border border-border px-4 py-3 shadow-sm">
           <Filter className="h-4 w-4 text-muted-foreground" />
           <Select value={statusFilter} onValueChange={setStatusFilter}>
-            <SelectTrigger className="w-48">
+            <SelectTrigger className="w-56 rounded-xl">
               <SelectValue placeholder="Filtrar por status" />
             </SelectTrigger>
             <SelectContent>
@@ -78,7 +78,7 @@ export default function Orders() {
           ))}
         </div>
       ) : orders.length === 0 ? (
-        <Card>
+        <Card className="rounded-2xl border-border/70 shadow-sm">
           <CardContent className="flex flex-col items-center justify-center py-16 text-center">
             <p className="text-muted-foreground text-lg">Nenhum pedido encontrado</p>
             <p className="text-muted-foreground text-sm mt-1">
@@ -101,7 +101,7 @@ export default function Orders() {
 
             return (
               <Link key={order.id} href={`/orders/${order.id}`}>
-                <Card className="hover:shadow-md transition-all cursor-pointer border-border hover:border-primary/30">
+                <Card className="rounded-2xl hover:shadow-lg transition-all cursor-pointer border-border/70 hover:border-primary/30">
                   <CardContent className="p-4">
                     <div className="flex items-start justify-between gap-4">
                       <div className="flex-1 min-w-0">

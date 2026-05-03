@@ -53,13 +53,13 @@ const STATUS_LABELS: Record<string, string> = {
 
 export default function Dashboard() {
   const queryClient = useQueryClient();
-  const { data: stats, isLoading: statsLoading } = useGetDashboardStats(undefined, {
+  const { data: stats, isLoading: statsLoading } = useGetDashboardStats({
     query: { queryKey: getGetDashboardStatsQueryKey() },
   });
-  const { data: recentData } = useGetRecentOrders(undefined, {
+  const { data: recentData } = useGetRecentOrders({
     query: { queryKey: getGetRecentOrdersQueryKey() },
   });
-  const { data: earningsData } = useGetEarnings(undefined, {
+  const { data: earningsData } = useGetEarnings({
     query: { queryKey: getGetEarningsQueryKey() },
   });
   const toggleMutation = useToggleAvailability();
@@ -95,12 +95,12 @@ export default function Dashboard() {
 
   return (
     <div className="space-y-8">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Dashboard</h1>
+          <h1 className="text-4xl font-bold tracking-tight">Dashboard</h1>
           <p className="text-muted-foreground mt-1">Visao geral da sua atividade</p>
         </div>
-        <div className="flex items-center gap-3 bg-card border border-border rounded-lg px-4 py-3">
+        <div className="flex items-center gap-3 bg-card border border-border rounded-2xl px-4 py-3 shadow-sm">
           <span className="text-sm font-medium text-muted-foreground">Disponivel</span>
           <Switch
             checked={stats?.availability ?? false}
@@ -116,8 +116,8 @@ export default function Dashboard() {
       </div>
 
       {/* Stats cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <Card>
+      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
+        <Card className="rounded-2xl border-border/70 shadow-sm">
           <CardHeader className="flex flex-row items-center justify-between pb-2">
             <CardTitle className="text-sm font-medium text-muted-foreground">
               Receita Total
@@ -132,7 +132,7 @@ export default function Dashboard() {
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="rounded-2xl border-border/70 shadow-sm">
           <CardHeader className="flex flex-row items-center justify-between pb-2">
             <CardTitle className="text-sm font-medium text-muted-foreground">
               A Receber
@@ -147,7 +147,7 @@ export default function Dashboard() {
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="rounded-2xl border-border/70 shadow-sm">
           <CardHeader className="flex flex-row items-center justify-between pb-2">
             <CardTitle className="text-sm font-medium text-muted-foreground">
               Taxa de Conclusao
@@ -162,7 +162,7 @@ export default function Dashboard() {
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="rounded-2xl border-border/70 shadow-sm">
           <CardHeader className="flex flex-row items-center justify-between pb-2">
             <CardTitle className="text-sm font-medium text-muted-foreground">
               Avaliacao
@@ -183,7 +183,7 @@ export default function Dashboard() {
 
       {/* Orders by status */}
       {stats?.ordersByStatus && stats.ordersByStatus.length > 0 && (
-        <Card>
+        <Card className="rounded-2xl border-border/70 shadow-sm">
           <CardHeader>
             <CardTitle className="text-base font-semibold">Pedidos por Status</CardTitle>
           </CardHeader>
@@ -209,7 +209,7 @@ export default function Dashboard() {
 
       {/* Earnings chart */}
       {chartData.length > 0 && (
-        <Card>
+        <Card className="rounded-2xl border-border/70 shadow-sm">
           <CardHeader>
             <CardTitle className="text-base font-semibold">Ganhos Mensais</CardTitle>
           </CardHeader>
@@ -240,7 +240,7 @@ export default function Dashboard() {
       )}
 
       {/* Recent orders */}
-      <Card>
+      <Card className="rounded-2xl border-border/70 shadow-sm">
         <CardHeader className="flex flex-row items-center justify-between">
           <CardTitle className="text-base font-semibold">Pedidos Recentes</CardTitle>
           <Link href="/orders">

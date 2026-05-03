@@ -16,6 +16,7 @@ import {
 import { Link, useLocation } from "wouter";
 import { toast } from "sonner";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import { Sparkles } from "lucide-react";
 
 const loginSchema = z.object({
   email: z.string().email("Invalid email address"),
@@ -49,19 +50,20 @@ export default function Login() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-background p-4 relative overflow-hidden">
-      {/* Decorative background elements */}
-      <div className="absolute top-0 left-0 w-full h-full overflow-hidden pointer-events-none">
-        <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] rounded-full bg-primary/10 blur-[100px]"></div>
-        <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] rounded-full bg-secondary/10 blur-[100px]"></div>
-      </div>
+    <div className="min-h-screen flex items-center justify-center p-4 relative overflow-hidden">
+      <div className="absolute inset-0 pointer-events-none bg-[radial-gradient(circle_at_top_left,rgba(107,76,230,0.14),transparent_28%),radial-gradient(circle_at_bottom_right,rgba(159,122,234,0.12),transparent_28%)]" />
 
-      <Card className="w-full max-w-md relative z-10 border-none shadow-xl bg-card/80 backdrop-blur-sm">
-        <CardHeader className="space-y-1 pb-8">
-          <CardTitle className="text-3xl font-bold tracking-tight text-center text-primary">ArtistFlow</CardTitle>
-          <CardDescription className="text-center text-base">
-            Your creative workspace awaits. Sign in.
-          </CardDescription>
+      <Card className="w-full max-w-md relative z-10 border-border/60 shadow-[0_20px_60px_rgba(107,76,230,0.12)] bg-card/90 backdrop-blur-xl rounded-2xl">
+        <CardHeader className="space-y-4 pb-8 text-center">
+          <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-primary text-primary-foreground shadow-lg shadow-primary/20">
+            <Sparkles className="h-6 w-6" />
+          </div>
+          <div className="space-y-1">
+            <CardTitle className="text-3xl font-bold tracking-tight">ArtistFlow</CardTitle>
+            <CardDescription className="text-base">
+              Your creative workspace awaits. Sign in.
+            </CardDescription>
+          </div>
         </CardHeader>
         <CardContent>
           <Form {...form}>
@@ -73,7 +75,7 @@ export default function Login() {
                   <FormItem>
                     <FormLabel>Email</FormLabel>
                     <FormControl>
-                      <Input placeholder="artist@example.com" className="h-12" {...field} />
+                      <Input placeholder="artist@example.com" className="h-12 rounded-xl" {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -86,13 +88,13 @@ export default function Login() {
                   <FormItem>
                     <FormLabel>Password</FormLabel>
                     <FormControl>
-                      <Input type="password" placeholder="••••••••" className="h-12" {...field} />
+                      <Input type="password" placeholder="••••••••" className="h-12 rounded-xl" {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
                 )}
               />
-              <Button type="submit" className="w-full h-12 text-md font-medium" disabled={loginMutation.isPending}>
+              <Button type="submit" className="w-full h-12 text-md font-semibold rounded-xl" disabled={loginMutation.isPending}>
                 {loginMutation.isPending ? "Signing in..." : "Sign In"}
               </Button>
             </form>

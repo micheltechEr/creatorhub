@@ -32,7 +32,7 @@ export default function Profile() {
   const [editing, setEditing] = useState(false);
   const [tagInput, setTagInput] = useState("");
 
-  const { data: artist, isLoading } = useGetMe(undefined, {
+  const { data: artist, isLoading } = useGetMe({
     query: { queryKey: getGetMeQueryKey() },
   });
   const updateMutation = useUpdateMe();
@@ -114,10 +114,10 @@ export default function Profile() {
   if (!artist) return null;
 
   return (
-    <div className="space-y-6 max-w-3xl">
-      <div className="flex items-center justify-between">
+    <div className="space-y-6 max-w-4xl">
+      <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Meu Perfil</h1>
+          <h1 className="text-4xl font-bold tracking-tight">Meu Perfil</h1>
           <p className="text-muted-foreground mt-1">Gerencie suas informacoes e configuracoes</p>
         </div>
         {!editing ? (
@@ -136,8 +136,8 @@ export default function Profile() {
       </div>
 
       {/* Stats bar */}
-      <div className="grid grid-cols-3 gap-4">
-        <Card>
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <Card className="rounded-2xl border-border/70 shadow-sm">
           <CardContent className="p-4 text-center">
             <div className="flex items-center justify-center gap-1 mb-1">
               <Star className="h-4 w-4 text-yellow-400" />
@@ -146,13 +146,13 @@ export default function Profile() {
             <p className="text-xs text-muted-foreground">{artist.totalReviews} avaliacoes</p>
           </CardContent>
         </Card>
-        <Card>
+        <Card className="rounded-2xl border-border/70 shadow-sm">
           <CardContent className="p-4 text-center">
             <p className="text-2xl font-bold">{formatCurrency(artist.basePrice)}</p>
             <p className="text-xs text-muted-foreground">Preco base</p>
           </CardContent>
         </Card>
-        <Card>
+        <Card className="rounded-2xl border-border/70 shadow-sm">
           <CardContent className="p-4 text-center">
             <p className="text-2xl font-bold">{artist.deliveryDays}d</p>
             <p className="text-xs text-muted-foreground">Prazo de entrega</p>
@@ -161,7 +161,7 @@ export default function Profile() {
       </div>
 
       {/* Availability */}
-      <Card>
+      <Card className="rounded-2xl border-border/70 shadow-sm">
         <CardContent className="p-4 flex items-center justify-between">
           <div>
             <p className="font-semibold">Disponibilidade</p>
@@ -185,7 +185,7 @@ export default function Profile() {
       </Card>
 
       {/* Profile info */}
-      <Card>
+      <Card className="rounded-2xl border-border/70 shadow-sm">
         <CardHeader>
           <CardTitle>Informacoes do Perfil</CardTitle>
         </CardHeader>
@@ -193,9 +193,10 @@ export default function Profile() {
           <div className="space-y-2">
             <Label>Nome artistico</Label>
             {editing ? (
-              <Input
+                  <Input
                 value={formData.name}
                 onChange={(e) => setFormData((p) => ({ ...p, name: e.target.value }))}
+                    className="rounded-xl"
               />
             ) : (
               <p className="font-medium">{artist.name}</p>
@@ -215,7 +216,7 @@ export default function Profile() {
                   <span className="absolute left-3 top-2.5 text-muted-foreground text-sm">R$</span>
                   <Input
                     type="number"
-                    className="pl-9"
+                    className="pl-9 rounded-xl"
                     value={formData.basePrice}
                     onChange={(e) => setFormData((p) => ({ ...p, basePrice: Number(e.target.value) }))}
                   />
@@ -230,6 +231,7 @@ export default function Profile() {
                 <Input
                   type="number"
                   value={formData.deliveryDays}
+                  className="rounded-xl"
                   onChange={(e) => setFormData((p) => ({ ...p, deliveryDays: Number(e.target.value) }))}
                 />
               ) : (
@@ -273,6 +275,7 @@ export default function Profile() {
                 <Input
                   placeholder="Pressione Enter para adicionar tag..."
                   value={tagInput}
+                  className="rounded-xl"
                   onChange={(e) => setTagInput(e.target.value)}
                   onKeyDown={addTag}
                 />
