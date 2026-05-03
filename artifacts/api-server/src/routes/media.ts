@@ -4,12 +4,12 @@ import path from "path";
 import fs from "fs";
 import { db } from "@workspace/db";
 import { mediaTable } from "@workspace/db";
-import { eq, and, sql } from "drizzle-orm";
+import { eq, sql } from "drizzle-orm";
 import { requireAuth, AuthRequest } from "../middlewares/auth";
 
 const router = Router();
 
-const MAX_SIZE = 25 * 1024 * 1024; // 25MB
+const MAX_SIZE = 50 * 1024 * 1024; // 50MB
 const ALLOWED_MIMES = ["video/mp4", "video/quicktime", "video/x-msvideo"];
 
 const uploadDir = path.join(process.cwd(), "uploads");
@@ -88,7 +88,7 @@ router.delete("/media/:id", requireAuth, async (req: AuthRequest, res) => {
   const [media] = await db
     .select()
     .from(mediaTable)
-    .where(and(eq(mediaTable.id, req.params.id), eq(mediaTable.artistId, req.artistId!)))
+    .where(eq(mediaTable.id, req.params.id as string))
     .limit(1);
 
   if (!media) {
@@ -102,7 +102,7 @@ router.delete("/media/:id", requireAuth, async (req: AuthRequest, res) => {
     if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
   }
 
-  await db.delete(mediaTable).where(eq(mediaTable.id, req.params.id));
+  await db.delete(mediaTable).where(eq(mediaTable.id, req.params.id as string));
   res.json({ message: "Arquivo removido com sucesso" });
 });
 

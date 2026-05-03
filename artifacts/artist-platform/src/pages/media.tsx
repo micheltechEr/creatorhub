@@ -23,7 +23,7 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 
-const MAX_SIZE_MB = 25;
+const MAX_SIZE_MB = 50;
 const ALLOWED_TYPES = ["video/mp4", "video/quicktime", "video/x-msvideo"];
 
 function formatFileSize(bytes: number) {
@@ -36,7 +36,7 @@ export default function Media() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [dragOver, setDragOver] = useState(false);
 
-  const { data, isLoading } = useListMedia(undefined, {
+  const { data, isLoading } = useListMedia({
     query: { queryKey: getListMediaQueryKey() },
   });
   const uploadMutation = useUploadMedia();
