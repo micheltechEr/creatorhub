@@ -1,6 +1,6 @@
 import { Router } from "express";
 import { db } from "@workspace/db";
-import { artistsTable } from "@workspace/db";
+import { artistsTable, platformUsersTable } from "@workspace/db";
 import { eq, and, gte, lte, sql } from "drizzle-orm";
 import { requireAuth, AuthRequest } from "../middlewares/auth";
 import { UpdateMeBody, ToggleAvailabilityBody } from "@workspace/api-zod";
@@ -76,6 +76,22 @@ router.post("/artists/onboard", async (req, res) => {
       .set({ clerkUserId: auth.userId, updatedAt: new Date() })
       .where(eq(artistsTable.email, email))
       .returning();
+
+    // Ensure platform_users record exists for this artist
+    await db
+      .insert(platformUsersTable)
+      .values({
+        clerkUserId: auth.userId,
+        email: linked.email,
+        name: linked.name,
+        role: "artist",
+        tenantId: linked.id,
+      })
+      .onConflictDoUpdate({
+        target: platformUsersTable.clerkUserId,
+        set: { tenantId: linked.id, name: linked.name, role: "artist", updatedAt: new Date() },
+      });
+
     res.json(formatArtist(linked));
     return;
   }
@@ -94,6 +110,26 @@ router.post("/artists/onboard", async (req, res) => {
       bio: bio ?? null,
     })
     .returning();
+
+  // Create platform_users record (multi-tenant role tracking)
+  await db
+    .insert(platformUsersTable)
+    .values({
+      clerkUserId: auth.userId,
+      email,
+      name,
+      role: "artist",
+      tenantId: artist.id,
+    })
+    .onConflictDoUpdate({
+      target: platformUsersTable.clerkUserId,
+      set: {
+        tenantId: artist.id,
+        name,
+        role: "artist",
+        updatedAt: new Date(),
+      },
+    });
 
   res.status(201).json(formatArtist(artist));
 });

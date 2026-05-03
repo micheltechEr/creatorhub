@@ -1,53 +1,61 @@
 import { useClerk, useUser } from "@clerk/react";
 import { Link, useLocation } from "wouter";
-import { LayoutDashboard, ListOrdered, Video, User, Star, LogOut, Menu, Users } from "lucide-react";
+import {
+  LayoutDashboard,
+  Users,
+  ListOrdered,
+  LogOut,
+  Menu,
+  ShieldCheck,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
-import { useGetMe, getGetMeQueryKey } from "@workspace/api-client-react";
-import { useQueryClient } from "@tanstack/react-query";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { useQueryClient } from "@tanstack/react-query";
+import { useCurrentUser } from "@/hooks/useCurrentUser";
 
-const navItems = [
-  { href: "/dashboard", label: "Dashboard",   icon: LayoutDashboard },
-  { href: "/orders",    label: "Pedidos",     icon: ListOrdered },
-  { href: "/clients",   label: "Clientes",    icon: Users },
-  { href: "/media",     label: "Portfólio",   icon: Video },
-  { href: "/profile",   label: "Perfil",      icon: User },
-  { href: "/reviews",   label: "Avaliações",  icon: Star },
+const adminNavItems = [
+  { href: "/admin", label: "Visão Geral", icon: LayoutDashboard },
+  { href: "/admin/artists", label: "Artistas", icon: Users },
+  { href: "/admin/orders", label: "Todos os Pedidos", icon: ListOrdered },
 ];
 
-export function Layout({ children }: { children: React.ReactNode }) {
+export function AdminLayout({ children }: { children: React.ReactNode }) {
   const [location] = useLocation();
   const { signOut } = useClerk();
   const { user } = useUser();
   const queryClient = useQueryClient();
-
-  const { data: artist } = useGetMe({
-    query: { queryKey: getGetMeQueryKey(), retry: false },
-  });
+  const { data: currentUser } = useCurrentUser();
 
   const handleLogout = async () => {
     queryClient.clear();
     await signOut();
   };
 
-  const displayName = artist?.name ?? user?.fullName ?? "";
-  const displayEmail = artist?.email ?? user?.primaryEmailAddress?.emailAddress ?? "";
+  const displayName = currentUser?.name ?? user?.fullName ?? "";
+  const displayEmail = currentUser?.email ?? user?.primaryEmailAddress?.emailAddress ?? "";
 
   const NavLinks = () => (
     <>
-      {/* Logo */}
       <div className="mb-8 px-5">
         <span className="font-serif text-xl font-semibold tracking-tight text-foreground">
           CREATOR HUB
         </span>
         <div className="mt-0.5 h-px w-8 bg-[#C9A961]" />
+        <div className="mt-2 flex items-center gap-1.5">
+          <ShieldCheck className="h-3 w-3 text-[#C9A961]" />
+          <span className="text-[10px] font-semibold text-[#C9A961] uppercase tracking-widest">
+            Super Admin
+          </span>
+        </div>
       </div>
 
-      {/* Navigation */}
       <nav className="flex-1 px-3 space-y-0.5">
-        {navItems.map((item) => {
-          const isActive = location === item.href || location.startsWith(item.href + "/");
+        {adminNavItems.map((item) => {
+          const isActive =
+            item.href === "/admin"
+              ? location === "/admin"
+              : location.startsWith(item.href);
           return (
             <Link key={item.href} href={item.href}>
               <span
@@ -60,7 +68,9 @@ export function Layout({ children }: { children: React.ReactNode }) {
               >
                 <item.icon
                   className={`mr-3 flex-shrink-0 h-4 w-4 ${
-                    isActive ? "text-background" : "text-muted-foreground group-hover:text-foreground"
+                    isActive
+                      ? "text-background"
+                      : "text-muted-foreground group-hover:text-foreground"
                   }`}
                 />
                 {item.label}
@@ -70,12 +80,11 @@ export function Layout({ children }: { children: React.ReactNode }) {
         })}
       </nav>
 
-      {/* Footer */}
       <div className="mt-auto px-3 pt-4 border-t border-sidebar-border">
         {displayName && (
           <div className="flex items-center gap-3 px-2 py-3 mb-2">
-            <Avatar className="h-8 w-8 rounded-full border border-border flex-shrink-0">
-              <AvatarFallback className="bg-muted text-foreground text-xs font-semibold rounded-full">
+            <Avatar className="h-8 w-8 rounded-full border border-[#C9A961]/30 flex-shrink-0">
+              <AvatarFallback className="bg-[#C9A961]/10 text-[#C9A961] text-xs font-semibold rounded-full">
                 {displayName.charAt(0).toUpperCase()}
               </AvatarFallback>
             </Avatar>
@@ -99,7 +108,6 @@ export function Layout({ children }: { children: React.ReactNode }) {
 
   return (
     <div className="flex h-screen bg-background">
-      {/* Mobile */}
       <Sheet>
         <SheetTrigger asChild>
           <Button
@@ -111,14 +119,16 @@ export function Layout({ children }: { children: React.ReactNode }) {
             <Menu className="h-5 w-5" />
           </Button>
         </SheetTrigger>
-        <SheetContent side="left" className="w-64 p-0 flex flex-col bg-sidebar border-sidebar-border">
+        <SheetContent
+          side="left"
+          className="w-64 p-0 flex flex-col bg-sidebar border-sidebar-border"
+        >
           <div className="flex flex-col h-full py-6">
             <NavLinks />
           </div>
         </SheetContent>
       </Sheet>
 
-      {/* Desktop sidebar */}
       <div
         className="hidden md:flex w-64 flex-col fixed inset-y-0 bg-sidebar border-r border-sidebar-border"
         style={{ boxShadow: "0 2px 8px rgba(0,0,0,0.04)" }}
@@ -128,7 +138,6 @@ export function Layout({ children }: { children: React.ReactNode }) {
         </div>
       </div>
 
-      {/* Main content */}
       <div className="flex-1 flex flex-col md:pl-64 h-full overflow-hidden">
         <main className="flex-1 overflow-y-auto p-6 md:p-10">
           <div className="max-w-6xl mx-auto">{children}</div>

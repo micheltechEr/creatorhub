@@ -6,15 +6,21 @@ import paymentsRouter from "./payments";
 import mediaRouter from "./media";
 import reviewsRouter from "./reviews";
 import dashboardRouter from "./dashboard";
+import usersRouter from "./users";
+import adminRouter from "./admin";
+import clientsRouter from "./clients";
 
 const router: IRouter = Router();
 
 router.use(healthRouter);
+router.use(usersRouter);
 router.use(artistsRouter);
 router.use(ordersRouter);
 router.use(paymentsRouter);
 router.use(mediaRouter);
 router.use(reviewsRouter);
 router.use(dashboardRouter);
+router.use("/admin", adminRouter);
+router.use(clientsRouter);
 
 export default router;

@@ -12,6 +12,7 @@ import { QueryClientProvider, useQueryClient } from "@tanstack/react-query";
 import { queryClient } from "./lib/queryClient";
 import { ClerkTokenBridge } from "./lib/auth-context";
 import { Layout } from "@/components/layout";
+import { AdminLayout } from "@/components/admin-layout";
 import Dashboard from "@/pages/dashboard";
 import Orders from "@/pages/orders";
 import OrderDetail from "@/pages/order-detail";
@@ -20,11 +21,14 @@ import Profile from "@/pages/profile";
 import Reviews from "@/pages/reviews";
 import ArtistPublic from "@/pages/artist-public";
 import Onboarding from "@/pages/onboarding";
+import Clients from "@/pages/clients";
+import AdminDashboard from "@/pages/admin/dashboard";
+import AdminArtists from "@/pages/admin/artists";
+import AdminOrders from "@/pages/admin/orders";
 import { Toaster } from "@/components/ui/sonner";
-import { useGetMe } from "@workspace/api-client-react";
+import { useCurrentUser } from "@/hooks/useCurrentUser";
 
 const clerkPubKey = import.meta.env.VITE_CLERK_PUBLISHABLE_KEY as string;
-
 const clerkProxyUrl = import.meta.env.VITE_CLERK_PROXY_URL;
 const basePath = import.meta.env.BASE_URL.replace(/\/$/, "");
 
@@ -82,6 +86,14 @@ const clerkAppearance = {
   },
 };
 
+function Spinner() {
+  return (
+    <div className="min-h-screen flex items-center justify-center bg-background">
+      <div className="w-8 h-8 border-2 border-[#C9A961] border-t-transparent rounded-full animate-spin" />
+    </div>
+  );
+}
+
 function ClerkQueryClientCacheInvalidator() {
   const { addListener } = useClerk();
   const qc = useQueryClient();
@@ -90,10 +102,7 @@ function ClerkQueryClientCacheInvalidator() {
   useEffect(() => {
     const unsubscribe = addListener(({ user }) => {
       const userId = user?.id ?? null;
-      if (
-        prevUserIdRef.current !== undefined &&
-        prevUserIdRef.current !== userId
-      ) {
+      if (prevUserIdRef.current !== undefined && prevUserIdRef.current !== userId) {
         qc.clear();
       }
       prevUserIdRef.current = userId;
@@ -104,37 +113,62 @@ function ClerkQueryClientCacheInvalidator() {
   return null;
 }
 
+/** Handles the root path — redirects based on auth + role. */
+function HomeRedirect() {
+  const { isSignedIn, isLoaded } = useUser();
+  const { data: user, isLoading: userLoading } = useCurrentUser();
+
+  if (!isLoaded || (isSignedIn && userLoading)) return <Spinner />;
+  if (!isSignedIn) return <Redirect to="/sign-in" />;
+  if (user?.role === "superadmin") return <Redirect to="/admin" />;
+  return <Redirect to="/dashboard" />;
+}
+
+/**
+ * Guards artist-only pages.
+ * - Unauthenticated → /sign-in
+ * - No profile → /onboarding
+ * - SuperAdmin → /admin (they have no artist workspace)
+ */
 function ProfileGate({ children }: { children: React.ReactNode }) {
   const { isSignedIn, isLoaded } = useUser();
-  const [, setLocation] = useLocation();
+  const { data: user, isLoading, error } = useCurrentUser();
 
-  const { isLoading, error } = useGetMe({
-    query: {
-      enabled: !!(isLoaded && isSignedIn),
-      retry: false,
-    },
-  });
+  if (!isLoaded || (isSignedIn && isLoading)) return <Spinner />;
 
-  if (!isLoaded || (isSignedIn && isLoading)) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
-        <div className="w-8 h-8 border-2 border-[#C9A961] border-t-transparent rounded-full animate-spin" />
-      </div>
-    );
-  }
-
-  if (!isSignedIn) {
-    return <Redirect to="/sign-in" />;
-  }
+  if (!isSignedIn) return <Redirect to="/sign-in" />;
 
   if (error) {
-    const status = (error as any)?.response?.status;
-    if (status === 403 || status === 404) {
-      return <Redirect to="/onboarding" />;
-    }
+    const status = (error as any)?.status;
+    if (status === 403 || status === 404) return <Redirect to="/onboarding" />;
   }
 
+  // Superadmin doesn't have an artist workspace — send to admin panel
+  if (user?.role === "superadmin") return <Redirect to="/admin" />;
+
   return <Layout>{children}</Layout>;
+}
+
+/**
+ * Guards superadmin-only pages.
+ * - Unauthenticated → /sign-in
+ * - Non-superadmin → /dashboard
+ */
+function AdminGate({ children }: { children: React.ReactNode }) {
+  const { isSignedIn, isLoaded } = useUser();
+  const { data: user, isLoading, error } = useCurrentUser();
+
+  if (!isLoaded || (isSignedIn && isLoading)) return <Spinner />;
+  if (!isSignedIn) return <Redirect to="/sign-in" />;
+
+  if (error) {
+    const status = (error as any)?.status;
+    if (status === 403 || status === 404) return <Redirect to="/onboarding" />;
+  }
+
+  if (user && user.role !== "superadmin") return <Redirect to="/dashboard" />;
+
+  return <AdminLayout>{children}</AdminLayout>;
 }
 
 function SignInPage() {
@@ -142,9 +176,7 @@ function SignInPage() {
     <div className="min-h-screen flex bg-[#0A0A0A]">
       <div className="hidden lg:flex lg:w-1/2 flex-col justify-between p-12">
         <div>
-          <span className="font-serif text-2xl font-semibold text-white tracking-tight">
-            CREATOR HUB
-          </span>
+          <span className="font-serif text-2xl font-semibold text-white tracking-tight">CREATOR HUB</span>
           <div className="mt-1 h-px w-10 bg-[#C9A961]" />
         </div>
         <div>
@@ -167,7 +199,7 @@ function SignInPage() {
             routing="path"
             path={`${basePath}/sign-in`}
             signUpUrl={`${basePath}/sign-up`}
-            fallbackRedirectUrl={`${basePath}/dashboard`}
+            fallbackRedirectUrl={`${basePath}/`}
           />
         </div>
       </div>
@@ -180,9 +212,7 @@ function SignUpPage() {
     <div className="min-h-screen flex bg-[#0A0A0A]">
       <div className="hidden lg:flex lg:w-1/2 flex-col justify-between p-12">
         <div>
-          <span className="font-serif text-2xl font-semibold text-white tracking-tight">
-            CREATOR HUB
-          </span>
+          <span className="font-serif text-2xl font-semibold text-white tracking-tight">CREATOR HUB</span>
           <div className="mt-1 h-px w-10 bg-[#C9A961]" />
         </div>
         <div>
@@ -213,21 +243,6 @@ function SignUpPage() {
   );
 }
 
-function HomeRedirect() {
-  const { isSignedIn, isLoaded } = useUser();
-
-  if (!isLoaded) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-[#0A0A0A]">
-        <div className="w-8 h-8 border-2 border-[#C9A961] border-t-transparent rounded-full animate-spin" />
-      </div>
-    );
-  }
-
-  if (isSignedIn) return <Redirect to="/dashboard" />;
-  return <Redirect to="/sign-in" />;
-}
-
 function ClerkProviderWithRoutes() {
   const [, setLocation] = useLocation();
 
@@ -239,18 +254,8 @@ function ClerkProviderWithRoutes() {
       signInUrl={`${basePath}/sign-in`}
       signUpUrl={`${basePath}/sign-up`}
       localization={{
-        signIn: {
-          start: {
-            title: "Bem-vindo de volta",
-            subtitle: "Entre na sua conta de artista",
-          },
-        },
-        signUp: {
-          start: {
-            title: "Criar conta",
-            subtitle: "Comece sua jornada como artista",
-          },
-        },
+        signIn: { start: { title: "Bem-vindo de volta", subtitle: "Entre na sua conta" } },
+        signUp: { start: { title: "Criar conta", subtitle: "Comece sua jornada como artista" } },
       }}
       routerPush={(to) => setLocation(stripBase(to))}
       routerReplace={(to) => setLocation(stripBase(to), { replace: true })}
@@ -259,59 +264,45 @@ function ClerkProviderWithRoutes() {
         <ClerkQueryClientCacheInvalidator />
         <ClerkTokenBridge />
         <Switch>
+          {/* Public */}
           <Route path="/" component={HomeRedirect} />
           <Route path="/sign-in/*?" component={SignInPage} />
           <Route path="/sign-up/*?" component={SignUpPage} />
           <Route path="/onboarding" component={Onboarding} />
-
           <Route path="/p/:artistId" component={ArtistPublic} />
 
+          {/* ── SuperAdmin Routes ────────────────────────────────── */}
+          <Route path="/admin">
+            {() => <AdminGate><AdminDashboard /></AdminGate>}
+          </Route>
+          <Route path="/admin/artists">
+            {() => <AdminGate><AdminArtists /></AdminGate>}
+          </Route>
+          <Route path="/admin/orders">
+            {() => <AdminGate><AdminOrders /></AdminGate>}
+          </Route>
+
+          {/* ── Artist Routes ────────────────────────────────────── */}
           <Route path="/dashboard">
-            {() => (
-              <ProfileGate>
-                <Dashboard />
-              </ProfileGate>
-            )}
+            {() => <ProfileGate><Dashboard /></ProfileGate>}
           </Route>
-
           <Route path="/orders/:id">
-            {(params) => (
-              <ProfileGate>
-                <OrderDetail params={params} />
-              </ProfileGate>
-            )}
+            {(params) => <ProfileGate><OrderDetail params={params} /></ProfileGate>}
           </Route>
-
           <Route path="/orders">
-            {() => (
-              <ProfileGate>
-                <Orders />
-              </ProfileGate>
-            )}
+            {() => <ProfileGate><Orders /></ProfileGate>}
           </Route>
-
           <Route path="/media">
-            {() => (
-              <ProfileGate>
-                <Media />
-              </ProfileGate>
-            )}
+            {() => <ProfileGate><Media /></ProfileGate>}
           </Route>
-
           <Route path="/profile">
-            {() => (
-              <ProfileGate>
-                <Profile />
-              </ProfileGate>
-            )}
+            {() => <ProfileGate><Profile /></ProfileGate>}
           </Route>
-
           <Route path="/reviews">
-            {() => (
-              <ProfileGate>
-                <Reviews />
-              </ProfileGate>
-            )}
+            {() => <ProfileGate><Reviews /></ProfileGate>}
+          </Route>
+          <Route path="/clients">
+            {() => <ProfileGate><Clients /></ProfileGate>}
           </Route>
         </Switch>
         <Toaster />
