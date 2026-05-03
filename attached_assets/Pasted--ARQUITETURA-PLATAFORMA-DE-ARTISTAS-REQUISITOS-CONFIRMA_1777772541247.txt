@@ -1,0 +1,1291 @@
+# ARQUITETURA - PLATAFORMA DE ARTISTAS
+
+## REQUISITOS CONFIRMADOS
+
+- **Autenticação**: JWT com Refresh Tokens
+- **Pagamentos**: Adapter Pattern (Stripe + Asaas - multi-gateway)
+- **Estados de Pedidos**: PROPOSED → PAYMENT_PENDING → PAID → IN_PROGRESS → DELIVERED → CANCELLED
+- **Upload de Vídeos**: Máximo 25MB
+- **Linguagem**: JavaScript Funcional (sem OOP/classes)
+
+---
+
+## 1. AUTENTICAÇÃO (JWT + Refresh Tokens)
+
+### `src/modules/auth/domain/jwt-service.js`
+```javascript
+const jwt = require('jsonwebtoken');
+
+const JWTService = (jwtSecret, refreshSecret) => {
+  const generateAccessToken = (payload, expiresIn = '30m') => {
+    const token = jwt.sign(payload, jwtSecret, { 
+      expiresIn, 
+      algorithm: 'HS256' 
+    });
+    const decoded = jwt.decode(token);
+    return { 
+      token, 
+      expiresAt: new Date(decoded.exp * 1000) 
+    };
+  };
+
+  const generateRefreshToken = (userId, expiresIn = '7d') => {
+    const payload = { 
+      userId, 
+      type: 'refresh', 
+      iat: Math.floor(Date.now() / 1000) 
+    };
+    const token = jwt.sign(payload, refreshSecret, { 
+      expiresIn, 
+      algorithm: 'HS256' 
+    });
+    const decoded = jwt.decode(token);
+    return { 
+      token, 
+      expiresAt: new Date(decoded.exp * 1000), 
+      userId 
+    };
+  };
+
+  const verifyAccessToken = (token) => {
+    try {
+      return jwt.verify(token, jwtSecret, { algorithms: ['HS256'] });
+    } catch (err) {
+      throw new Error(`Token inválido: ${err.message}`);
+    }
+  };
+
+  const verifyRefreshToken = (token) => {
+    try {
+      const decoded = jwt.verify(token, refreshSecret, { algorithms: ['HS256'] });
+      if (decoded.type !== 'refresh') throw new Error('Token tipo inválido');
+      return decoded;
+    } catch (err) {
+      throw new Error(`Refresh token inválido: ${err.message}`);
+    }
+  };
+
+  return {
+    generateAccessToken,
+    generateRefreshToken,
+    verifyAccessToken,
+    verifyRefreshToken
+  };
+};
+
+module.exports = { JWTService };
+```
+
+### `src/modules/auth/domain/password-service.js`
+```javascript
+const bcrypt = require('bcrypt');
+
+const PasswordService = (saltRounds = 10) => {
+  const hash = async (password) => {
+    if (!password || password.length < 8) {
+      throw new Error('Senha deve ter mínimo 8 caracteres');
+    }
+    return bcrypt.hash(password, saltRounds);
+  };
+
+  const compare = async (password, hashedPassword) => {
+    return bcrypt.compare(password, hashedPassword);
+  };
+
+  const validate = (password) => {
+    if (!password || password.length < 8) {
+      throw new Error('Senha inválida: mínimo 8 caracteres');
+    }
+    return true;
+  };
+
+  return { hash, compare, validate };
+};
+
+module.exports = { PasswordService };
+```
+
+### `src/modules/auth/application/login-usecase.js`
+```javascript
+const LoginUseCase = (artistRepository, jwtService, passwordService, logger) => {
+  return async (email, password) => {
+    logger.info('Login attempt', { email });
+
+    const artist = await artistRepository.findByEmail(email);
+    if (!artist) {
+      throw new Error('Email ou senha incorretos');
+    }
+
+    const passwordMatch = await passwordService.compare(password, artist.hashedPassword);
+    if (!passwordMatch) {
+      throw new Error('Email ou senha incorretos');
+    }
+
+    const accessTokenData = jwtService.generateAccessToken({
+      id: artist.id,
+      email: artist.email,
+      role: 'artist'
+    });
+
+    const refreshTokenData = jwtService.generateRefreshToken(artist.id);
+
+    logger.info('Login successful', { artistId: artist.id });
+
+    return {
+      accessToken: accessTokenData.token,
+      refreshToken: refreshTokenData.token,
+      expiresIn: 1800, // 30 minutos em segundos
+      user: {
+        id: artist.id,
+        email: artist.email,
+        name: artist.name
+      }
+    };
+  };
+};
+
+module.exports = { LoginUseCase };
+```
+
+### `src/modules/auth/application/refresh-token-usecase.js`
+```javascript
+const RefreshTokenUseCase = (jwtService, refreshTokenRepository, logger) => {
+  return async (refreshToken) => {
+    logger.info('Refreshing token');
+
+    const decoded = jwtService.verifyRefreshToken(refreshToken);
+
+    const storedToken = await refreshTokenRepository.findByToken(refreshToken);
+    if (!storedToken || storedToken.isRevoked) {
+      throw new Error('Refresh token revogado');
+    }
+
+    const newAccessTokenData = jwtService.generateAccessToken({
+      id: decoded.userId,
+      role: 'artist'
+    });
+
+    logger.info('Token refreshed', { userId: decoded.userId });
+
+    return {
+      accessToken: newAccessTokenData.token,
+      expiresIn: 1800
+    };
+  };
+};
+
+module.exports = { RefreshTokenUseCase };
+```
+
+---
+
+## 2. PAGAMENTOS (Adapter Pattern - Multi-Gateway)
+
+### `src/modules/payments/domain/payment-gateway-port.js`
+```javascript
+// Contrato que todos os adapters devem implementar
+const PaymentGatewayPort = {
+  createCheckout: async (payment) => {
+    // Retorna { url, sessionId, expiresAt }
+  },
+  confirmPayment: async (sessionId) => {
+    // Retorna { status, transactionId, amount, paidAt }
+  },
+  refund: async (transactionId, amount) => {
+    // Retorna { success, refundId, reason }
+  },
+  getPaymentStatus: async (transactionId) => {
+    // Retorna { status, amount, paidAt }
+  }
+};
+
+module.exports = { PaymentGatewayPort };
+```
+
+### `src/modules/payments/domain/payment-entity.js`
+```javascript
+const Payment = (id, orderId, amount, currency, status, provider, transactionId, createdAt) => {
+  const validateAmount = (amount) => {
+    if (amount <= 0) throw new Error('Valor deve ser maior que 0');
+    if (!Number.isInteger(amount * 100)) {
+      throw new Error('Valor deve ter máximo 2 casas decimais');
+    }
+  };
+
+  const validateProvider = (provider) => {
+    const validProviders = ['stripe', 'asaas'];
+    if (!validProviders.includes(provider)) {
+      throw new Error(`Provider inválido. Aceitos: ${validProviders.join(', ')}`);
+    }
+  };
+
+  validateAmount(amount);
+  validateProvider(provider);
+
+  return {
+    id,
+    orderId,
+    amount, // em centavos
+    currency,
+    status, // PENDING, CONFIRMED, REFUNDED, FAILED
+    provider,
+    transactionId,
+    createdAt,
+    platformFeePercent: 0.05, // 5%
+    calculateFee: () => Math.ceil(amount * (1 + 0.05)) - amount,
+    getTotalAmount: () => Math.ceil(amount * (1 + 0.05))
+  };
+};
+
+module.exports = { Payment };
+```
+
+### `src/modules/payments/infra/adapters/stripe-adapter.js`
+```javascript
+const StripeAdapter = (stripeClient) => {
+  return {
+    createCheckout: async (payment) => {
+      try {
+        const session = await stripeClient.checkout.sessions.create({
+          payment_method_types: ['card', 'boleto', 'pix'],
+          line_items: [{
+            price_data: {
+              currency: payment.currency.toLowerCase(),
+              product_data: {
+                name: payment.description
+              },
+              unit_amount: Math.ceil(payment.amount * (1 + 0.05)) // com taxa
+            },
+            quantity: 1
+          }],
+          mode: 'payment',
+          success_url: `${payment.successUrl}?session_id={CHECKOUT_SESSION_ID}`,
+          cancel_url: payment.cancelUrl,
+          metadata: {
+            orderId: payment.orderId,
+            artistId: payment.artistId
+          }
+        });
+
+        return {
+          url: session.url,
+          sessionId: session.id,
+          expiresAt: new Date(session.expires_at * 1000)
+        };
+      } catch (err) {
+        throw new Error(`Stripe checkout error: ${err.message}`);
+      }
+    },
+
+    confirmPayment: async (sessionId) => {
+      try {
+        const session = await stripeClient.checkout.sessions.retrieve(sessionId);
+
+        if (session.payment_status !== 'paid') {
+          return { status: 'PENDING' };
+        }
+
+        return {
+          status: 'CONFIRMED',
+          transactionId: session.payment_intent,
+          amount: session.amount_total,
+          paidAt: new Date(session.created * 1000)
+        };
+      } catch (err) {
+        throw new Error(`Stripe confirmation error: ${err.message}`);
+      }
+    },
+
+    refund: async (transactionId, amount) => {
+      try {
+        const refund = await stripeClient.refunds.create({
+          payment_intent: transactionId,
+          amount: amount ? Math.ceil(amount * 100) : undefined
+        });
+
+        return {
+          success: refund.status === 'succeeded',
+          refundId: refund.id,
+          reason: refund.reason
+        };
+      } catch (err) {
+        return {
+          success: false,
+          reason: err.message
+        };
+      }
+    },
+
+    getPaymentStatus: async (transactionId) => {
+      try {
+        const intent = await stripeClient.paymentIntents.retrieve(transactionId);
+        
+        return {
+          status: intent.status === 'succeeded' ? 'CONFIRMED' : 'PENDING',
+          amount: intent.amount,
+          paidAt: new Date(intent.created * 1000)
+        };
+      } catch (err) {
+        throw new Error(`Stripe status error: ${err.message}`);
+      }
+    }
+  };
+};
+
+module.exports = { StripeAdapter };
+```
+
+### `src/modules/payments/infra/adapters/asaas-adapter.js`
+```javascript
+const axios = require('axios');
+
+const AsaasAdapter = (apiKey, baseUrl = 'https://api.asaas.com/v3') => {
+  const client = axios.create({
+    baseURL: baseUrl,
+    headers: { 'Authorization': `Bearer ${apiKey}` }
+  });
+
+  return {
+    createCheckout: async (payment) => {
+      try {
+        const response = await client.post('/checkout', {
+          customer: {
+            name: payment.customerName,
+            email: payment.customerEmail
+          },
+          billingType: 'PIX',
+          dueDate: new Date(Date.now() + 15 * 60000).toISOString().split('T')[0],
+          value: (payment.amount * (1 + 0.05)) / 100, // com taxa
+          description: payment.description,
+          externalReference: payment.orderId,
+          notificationUrl: payment.webhookUrl
+        });
+
+        return {
+          url: response.data.url,
+          sessionId: response.data.id,
+          expiresAt: new Date(Date.now() + 15 * 60000)
+        };
+      } catch (err) {
+        throw new Error(`Asaas checkout error: ${err.response?.data?.errors?.[0]?.description || err.message}`);
+      }
+    },
+
+    confirmPayment: async (sessionId) => {
+      try {
+        const response = await client.get(`/invoices/${sessionId}`);
+        const data = response.data;
+
+        if (data.status !== 'RECEIVED') {
+          return { status: 'PENDING' };
+        }
+
+        return {
+          status: 'CONFIRMED',
+          transactionId: data.id,
+          amount: Math.ceil(data.value * 100),
+          paidAt: new Date(data.confirmedDate)
+        };
+      } catch (err) {
+        throw new Error(`Asaas confirmation error: ${err.message}`);
+      }
+    },
+
+    refund: async (transactionId, amount) => {
+      try {
+        const response = await client.post(`/invoices/${transactionId}/refund`, {
+          value: amount ? amount / 100 : undefined
+        });
+
+        return {
+          success: response.status === 200,
+          refundId: response.data.refundId,
+          reason: 'Reembolso processado'
+        };
+      } catch (err) {
+        return {
+          success: false,
+          reason: err.response?.data?.errors?.[0]?.description || err.message
+        };
+      }
+    },
+
+    getPaymentStatus: async (transactionId) => {
+      try {
+        const response = await client.get(`/invoices/${transactionId}`);
+        const data = response.data;
+
+        return {
+          status: data.status === 'RECEIVED' ? 'CONFIRMED' : 'PENDING',
+          amount: Math.ceil(data.value * 100),
+          paidAt: data.confirmedDate ? new Date(data.confirmedDate) : null
+        };
+      } catch (err) {
+        throw new Error(`Asaas status error: ${err.message}`);
+      }
+    }
+  };
+};
+
+module.exports = { AsaasAdapter };
+```
+
+### `src/modules/payments/application/payment-gateway-factory.js`
+```javascript
+const { StripeAdapter } = require('../infra/adapters/stripe-adapter');
+const { AsaasAdapter } = require('../infra/adapters/asaas-adapter');
+
+const PaymentGatewayFactory = (config) => {
+  const adapters = {
+    stripe: () => StripeAdapter(config.stripeClient),
+    asaas: () => AsaasAdapter(config.asaasKey)
+  };
+
+  const createGateway = (provider) => {
+    const adapter = adapters[provider];
+    if (!adapter) {
+      throw new Error(`Provider "${provider}" não configurado`);
+    }
+    return adapter();
+  };
+
+  const getDefaultProvider = () => config.defaultPaymentProvider || 'stripe';
+
+  return {
+    createGateway,
+    getDefaultProvider,
+    getSupportedProviders: () => Object.keys(adapters)
+  };
+};
+
+module.exports = { PaymentGatewayFactory };
+```
+
+### `src/modules/payments/application/create-checkout-usecase.js`
+```javascript
+const CreateCheckoutUseCase = (paymentGatewayFactory, paymentRepository, logger) => {
+  return async (order, provider = null) => {
+    logger.info('Creating checkout', { orderId: order.id, provider });
+
+    const paymentProvider = provider || paymentGatewayFactory.getDefaultProvider();
+    const gateway = paymentGatewayFactory.createGateway(paymentProvider);
+
+    const checkoutData = await gateway.createCheckout({
+      orderId: order.id,
+      amount: order.totalAmount,
+      currency: 'BRL',
+      description: `Pedido #${order.id}`,
+      customerName: order.clientName,
+      customerEmail: order.clientEmail,
+      successUrl: 'https://app.com/payment/success',
+      cancelUrl: 'https://app.com/payment/cancel',
+      webhookUrl: 'https://api.app.com/webhooks/payment'
+    });
+
+    const payment = {
+      id: crypto.randomUUID(),
+      orderId: order.id,
+      amount: order.totalAmount,
+      currency: 'BRL',
+      status: 'PENDING',
+      provider: paymentProvider,
+      transactionId: checkoutData.sessionId,
+      createdAt: new Date()
+    };
+
+    await paymentRepository.save(payment);
+
+    logger.info('Checkout created', { paymentId: payment.id, checkoutUrl: checkoutData.url });
+
+    return {
+      checkoutUrl: checkoutData.url,
+      sessionId: checkoutData.sessionId,
+      expiresAt: checkoutData.expiresAt
+    };
+  };
+};
+
+module.exports = { CreateCheckoutUseCase };
+```
+
+### `src/modules/payments/application/confirm-payment-usecase.js`
+```javascript
+const ConfirmPaymentUseCase = (paymentGatewayFactory, paymentRepository, ordersRepository, eventBus, logger) => {
+  return async (sessionId, provider) => {
+    logger.info('Confirming payment', { sessionId, provider });
+
+    const payment = await paymentRepository.findByTransactionId(sessionId);
+    if (!payment) {
+      throw new Error('Pagamento não encontrado');
+    }
+
+    const gateway = paymentGatewayFactory.createGateway(provider);
+    const confirmationData = await gateway.confirmPayment(sessionId);
+
+    if (confirmationData.status !== 'CONFIRMED') {
+      throw new Error('Pagamento não confirmado');
+    }
+
+    payment.status = 'CONFIRMED';
+    payment.transactionId = confirmationData.transactionId;
+    await paymentRepository.save(payment);
+
+    await eventBus.emit('payment.confirmed', {
+      paymentId: payment.id,
+      orderId: payment.orderId,
+      amount: payment.amount,
+      confirmedAt: confirmationData.paidAt
+    });
+
+    logger.info('Payment confirmed', { paymentId: payment.id });
+
+    return { status: 'CONFIRMED', paymentId: payment.id };
+  };
+};
+
+module.exports = { ConfirmPaymentUseCase };
+```
+
+---
+
+## 3. PEDIDOS (Order States)
+
+### `src/modules/orders/domain/order-states.js`
+```javascript
+const OrderStatus = {
+  PROPOSED: 'PROPOSED',                    // Criado, aguardando pagamento
+  PAYMENT_PENDING: 'PAYMENT_PENDING',      // Pagamento iniciado, aguardando confirmação
+  PAID: 'PAID',                            // Pagamento confirmado, artista pode começar
+  IN_PROGRESS: 'IN_PROGRESS',              // Artista está trabalhando
+  DELIVERED: 'DELIVERED',                  // Vídeo entregue
+  CANCELLED: 'CANCELLED'                   // Pedido cancelado
+};
+
+const OrderTransitions = {
+  [OrderStatus.PROPOSED]: [OrderStatus.PAYMENT_PENDING, OrderStatus.CANCELLED],
+  [OrderStatus.PAYMENT_PENDING]: [OrderStatus.PAID, OrderStatus.PROPOSED],
+  [OrderStatus.PAID]: [OrderStatus.IN_PROGRESS, OrderStatus.CANCELLED],
+  [OrderStatus.IN_PROGRESS]: [OrderStatus.DELIVERED, OrderStatus.CANCELLED],
+  [OrderStatus.DELIVERED]: [],
+  [OrderStatus.CANCELLED]: []
+};
+
+const canTransition = (fromStatus, toStatus) => {
+  return OrderTransitions[fromStatus]?.includes(toStatus) || false;
+};
+
+module.exports = { OrderStatus, OrderTransitions, canTransition };
+```
+
+### `src/modules/orders/domain/order-entity.js`
+```javascript
+const { OrderStatus, canTransition } = require('./order-states');
+
+const Order = (
+  id,
+  clientId,
+  artistId,
+  title,
+  description,
+  occasion,
+  names,
+  referenceLinks,
+  deadline,
+  additionalInstructions,
+  basePrice,
+  status = OrderStatus.PROPOSED,
+  createdAt = new Date()
+) => {
+  const validate = () => {
+    if (!clientId) throw new Error('Client ID inválido');
+    if (!artistId) throw new Error('Artist ID inválido');
+    if (!title || title.trim().length === 0) throw new Error('Título inválido');
+    if (!deadline || deadline <= new Date()) throw new Error('Deadline inválido');
+    if (basePrice <= 0) throw new Error('Preço deve ser maior que 0');
+  };
+
+  const transitionTo = (newStatus) => {
+    if (!canTransition(status, newStatus)) {
+      throw new Error(`Transição inválida de ${status} para ${newStatus}`);
+    }
+    return Order(
+      id, clientId, artistId, title, description, occasion, names,
+      referenceLinks, deadline, additionalInstructions, basePrice, newStatus, createdAt
+    );
+  };
+
+  const getDaysRemaining = () => {
+    const now = new Date();
+    const days = Math.ceil((deadline - now) / (1000 * 60 * 60 * 24));
+    return Math.max(0, days);
+  };
+
+  validate();
+
+  return {
+    id,
+    clientId,
+    artistId,
+    title,
+    description,
+    occasion,
+    names,
+    referenceLinks,
+    deadline,
+    additionalInstructions,
+    basePrice,
+    status,
+    createdAt,
+    transitionTo,
+    getDaysRemaining,
+    isDeadlineApproaching: () => getDaysRemaining() <= 3
+  };
+};
+
+module.exports = { Order };
+```
+
+### `src/modules/orders/application/create-order-usecase.js`
+```javascript
+const { Order } = require('../domain/order-entity');
+
+const CreateOrderUseCase = (orderRepository, artistRepository, eventBus, logger) => {
+  return async (input) => {
+    logger.info('Creating order', { clientId: input.clientId, artistId: input.artistId });
+
+    const artist = await artistRepository.findById(input.artistId);
+    if (!artist) {
+      throw new Error('Artista não encontrado');
+    }
+
+    const order = Order(
+      crypto.randomUUID(),
+      input.clientId,
+      input.artistId,
+      input.title,
+      input.description,
+      input.occasion,
+      input.names,
+      input.referenceLinks || [],
+      new Date(input.deadline),
+      input.additionalInstructions || '',
+      input.basePrice || artist.basePrice
+    );
+
+    const savedOrder = await orderRepository.save(order);
+
+    await eventBus.emit('order.created', {
+      orderId: savedOrder.id,
+      artistId: savedOrder.artistId,
+      clientId: savedOrder.clientId,
+      deadline: savedOrder.deadline,
+      createdAt: savedOrder.createdAt
+    });
+
+    logger.info('Order created', { orderId: savedOrder.id });
+
+    return savedOrder;
+  };
+};
+
+module.exports = { CreateOrderUseCase };
+```
+
+---
+
+## 4. ARTISTAS
+
+### `src/modules/artists/domain/artist-entity.js`
+```javascript
+const Artist = (
+  id,
+  name,
+  email,
+  hashedPassword,
+  categories,
+  tags,
+  basePrice,
+  deliveryDays,
+  availability = true,
+  mediaFiles = [],
+  bankData = null,
+  rating = 0,
+  totalReviews = 0,
+  createdAt = new Date()
+) => {
+  const validate = () => {
+    if (!name || name.trim().length === 0) throw new Error('Nome inválido');
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) throw new Error('Email inválido');
+    if (!hashedPassword || hashedPassword.length < 20) throw new Error('Password hash inválido');
+    if (!Array.isArray(categories) || categories.length === 0) throw new Error('Mínimo 1 categoria');
+    if (basePrice <= 0) throw new Error('Preço base deve ser > 0');
+    if (deliveryDays < 1 || deliveryDays > 180) throw new Error('Prazo: 1-180 dias');
+  };
+
+  validate();
+
+  return {
+    id,
+    name,
+    email,
+    hashedPassword,
+    categories,
+    tags,
+    basePrice,
+    deliveryDays,
+    availability,
+    mediaFiles,
+    bankData,
+    rating,
+    totalReviews,
+    createdAt,
+    updateRating: (newRating) => {
+      if (newRating < 0 || newRating > 5) throw new Error('Rating deve estar entre 0 e 5');
+      return Artist(id, name, email, hashedPassword, categories, tags, basePrice,
+        deliveryDays, availability, mediaFiles, bankData, newRating, totalReviews, createdAt);
+    }
+  };
+};
+
+module.exports = { Artist };
+```
+
+### `src/modules/artists/application/create-artist-usecase.js`
+```javascript
+const { Artist } = require('../domain/artist-entity');
+
+const CreateArtistUseCase = (artistRepository, passwordService, eventBus, logger) => {
+  return async (input) => {
+    logger.info('Creating artist', { email: input.email });
+
+    const existingArtist = await artistRepository.findByEmail(input.email);
+    if (existingArtist) {
+      throw new Error('Email já cadastrado');
+    }
+
+    const hashedPassword = await passwordService.hash(input.password);
+
+    const artist = Artist(
+      crypto.randomUUID(),
+      input.name,
+      input.email,
+      hashedPassword,
+      input.categories,
+      input.tags || [],
+      input.basePrice,
+      input.deliveryDays
+    );
+
+    const savedArtist = await artistRepository.save(artist);
+
+    await eventBus.emit('artist.created', {
+      artistId: savedArtist.id,
+      email: savedArtist.email,
+      name: savedArtist.name
+    });
+
+    logger.info('Artist created', { artistId: savedArtist.id });
+
+    return {
+      id: savedArtist.id,
+      email: savedArtist.email,
+      name: savedArtist.name
+    };
+  };
+};
+
+module.exports = { CreateArtistUseCase };
+```
+
+---
+
+## 5. VÍDEOS (Upload 25MB máximo)
+
+### `src/modules/artists/domain/media-entity.js`
+```javascript
+const MAX_VIDEO_SIZE = 25 * 1024 * 1024; // 25MB
+
+const Media = (id, artistId, fileName, fileSize, fileUrl, mimeType, uploadedAt) => {
+  const validate = () => {
+    if (!artistId) throw new Error('Artist ID inválido');
+    if (!fileName || fileName.trim().length === 0) throw new Error('Nome do arquivo inválido');
+    if (fileSize > MAX_VIDEO_SIZE) throw new Error('Arquivo excede 25MB');
+    if (!['video/mp4', 'video/quicktime', 'video/x-msvideo'].includes(mimeType)) {
+      throw new Error('Tipo de arquivo não suportado');
+    }
+  };
+
+  validate();
+
+  return {
+    id,
+    artistId,
+    fileName,
+    fileSize,
+    fileUrl,
+    mimeType,
+    uploadedAt,
+    isExpired: () => {
+      const daysSinceUpload = (Date.now() - uploadedAt) / (1000 * 60 * 60 * 24);
+      return daysSinceUpload > 365;
+    }
+  };
+};
+
+module.exports = { Media, MAX_VIDEO_SIZE };
+```
+
+### `src/modules/artists/application/upload-video-usecase.js`
+```javascript
+const { Media, MAX_VIDEO_SIZE } = require('../domain/media-entity');
+
+const UploadVideoUseCase = (mediaRepository, supabaseStorage, logger) => {
+  return async (artistId, file) => {
+    logger.info('Uploading video', { artistId, fileName: file.name, fileSize: file.size });
+
+    if (file.size > MAX_VIDEO_SIZE) {
+      throw new Error(`Arquivo excede 25MB. Tamanho: ${(file.size / 1024 / 1024).toFixed(2)}MB`);
+    }
+
+    const allowedMimes = ['video/mp4', 'video/quicktime', 'video/x-msvideo'];
+    if (!allowedMimes.includes(file.type)) {
+      throw new Error('Tipo de arquivo não suportado. Aceitos: MP4, MOV, AVI');
+    }
+
+    const fileName = `${artistId}/${Date.now()}-${file.name}`;
+
+    const { data, error } = await supabaseStorage
+      .from('artist-videos')
+      .upload(fileName, file, { 
+        contentType: file.type,
+        cacheControl: '3600'
+      });
+
+    if (error) throw error;
+
+    const fileUrl = supabaseStorage
+      .from('artist-videos')
+      .getPublicUrl(data.path).data.publicUrl;
+
+    const media = Media(
+      crypto.randomUUID(),
+      artistId,
+      file.name,
+      file.size,
+      fileUrl,
+      file.type
+    );
+
+    const savedMedia = await mediaRepository.save(media);
+
+    logger.info('Video uploaded', { mediaId: savedMedia.id, fileUrl: savedMedia.fileUrl });
+
+    return {
+      id: savedMedia.id,
+      fileName: savedMedia.fileName,
+      fileUrl: savedMedia.fileUrl,
+      uploadedAt: savedMedia.uploadedAt
+    };
+  };
+};
+
+module.exports = { UploadVideoUseCase };
+```
+
+---
+
+## 6. NOTIFICAÇÕES (Event-Driven)
+
+### `src/shared/event-bus.js`
+```javascript
+const EventBus = () => {
+  const listeners = {};
+
+  const subscribe = (eventName, handler) => {
+    if (!listeners[eventName]) {
+      listeners[eventName] = [];
+    }
+    listeners[eventName].push(handler);
+    
+    return () => {
+      listeners[eventName] = listeners[eventName].filter(h => h !== handler);
+    };
+  };
+
+  const emit = async (eventName, data) => {
+    if (!listeners[eventName]) return;
+    
+    for (const handler of listeners[eventName]) {
+      try {
+        await handler(data);
+      } catch (error) {
+        console.error(`Error in event handler for ${eventName}:`, error);
+      }
+    }
+  };
+
+  return { subscribe, emit };
+};
+
+module.exports = { EventBus };
+```
+
+### `src/modules/notifications/application/notification-service.js`
+```javascript
+const NotificationService = (emailProvider, smsProvider, logger) => {
+  const onOrderCreated = (eventBus) => {
+    eventBus.subscribe('order.created', async (data) => {
+      logger.info('Sending order creation notification', { orderId: data.orderId });
+
+      await emailProvider.send({
+        to: data.artistEmail,
+        subject: `Novo pedido: ${data.title}`,
+        template: 'order-created',
+        data: {
+          artistName: data.artistName,
+          clientName: data.clientName,
+          title: data.title,
+          deadline: data.deadline,
+          dashboardUrl: 'https://app.com/dashboard'
+        }
+      });
+    });
+  };
+
+  const onPaymentConfirmed = (eventBus) => {
+    eventBus.subscribe('payment.confirmed', async (data) => {
+      logger.info('Sending payment confirmation', { paymentId: data.paymentId });
+
+      await emailProvider.send({
+        to: data.clientEmail,
+        subject: 'Pagamento confirmado',
+        template: 'payment-confirmed',
+        data: {
+          amount: data.amount,
+          orderId: data.orderId
+        }
+      });
+    });
+  };
+
+  const onOrderDelivered = (eventBus) => {
+    eventBus.subscribe('order.delivered', async (data) => {
+      logger.info('Sending delivery notification', { orderId: data.orderId });
+
+      await emailProvider.send({
+        to: data.clientEmail,
+        subject: 'Seu vídeo foi entregue!',
+        template: 'order-delivered',
+        data: {
+          videoUrl: data.videoUrl,
+          orderId: data.orderId
+        }
+      });
+    });
+  };
+
+  return {
+    setupListeners: (eventBus) => {
+      onOrderCreated(eventBus);
+      onPaymentConfirmed(eventBus);
+      onOrderDelivered(eventBus);
+    }
+  };
+};
+
+module.exports = { NotificationService };
+```
+
+---
+
+## 7. AVALIAÇÕES
+
+### `src/modules/reviews/domain/review-entity.js`
+```javascript
+const Review = (id, orderId, artistId, clientId, rating, comment, createdAt) => {
+  const validate = () => {
+    if (!orderId) throw new Error('Order ID inválido');
+    if (!artistId) throw new Error('Artist ID inválido');
+    if (!clientId) throw new Error('Client ID inválido');
+    if (rating < 1 || rating > 5) throw new Error('Rating deve estar entre 1 e 5');
+    if (comment && comment.length > 500) throw new Error('Comentário muito longo');
+  };
+
+  validate();
+
+  return {
+    id,
+    orderId,
+    artistId,
+    clientId,
+    rating,
+    comment,
+    createdAt
+  };
+};
+
+module.exports = { Review };
+```
+
+### `src/modules/reviews/application/create-review-usecase.js`
+```javascript
+const { Review } = require('../domain/review-entity');
+
+const CreateReviewUseCase = (reviewRepository, orderRepository, artistRepository, eventBus, logger) => {
+  return async (input) => {
+    logger.info('Creating review', { orderId: input.orderId });
+
+    const order = await orderRepository.findById(input.orderId);
+    if (!order || order.status !== 'DELIVERED') {
+      throw new Error('Pedido deve estar entregue para criar avaliação');
+    }
+
+    const existingReview = await reviewRepository.findByOrderId(input.orderId);
+    if (existingReview) {
+      throw new Error('Avaliação já existe para este pedido');
+    }
+
+    const review = Review(
+      crypto.randomUUID(),
+      input.orderId,
+      order.artistId,
+      order.clientId,
+      input.rating,
+      input.comment || ''
+    );
+
+    const savedReview = await reviewRepository.save(review);
+
+    await eventBus.emit('review.created', {
+      reviewId: savedReview.id,
+      artistId: savedReview.artistId,
+      rating: savedReview.rating,
+      orderId: savedReview.orderId
+    });
+
+    logger.info('Review created', { reviewId: savedReview.id });
+
+    return savedReview;
+  };
+};
+
+module.exports = { CreateReviewUseCase };
+```
+
+---
+
+## 8. MIGRATIONS SUPABASE
+
+### `migrations/001_create_artists_table.sql`
+```sql
+CREATE TABLE IF NOT EXISTS artists (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  name VARCHAR(255) NOT NULL,
+  email VARCHAR(255) NOT NULL UNIQUE,
+  hashed_password TEXT NOT NULL,
+  categories TEXT[] NOT NULL,
+  tags TEXT[] DEFAULT '{}',
+  base_price DECIMAL(10, 2) NOT NULL CHECK (base_price > 0),
+  delivery_days INTEGER NOT NULL CHECK (delivery_days >= 1 AND delivery_days <= 180),
+  availability BOOLEAN DEFAULT true,
+  bank_data TEXT,
+  rating DECIMAL(3, 2) DEFAULT 0 CHECK (rating >= 0 AND rating <= 5),
+  total_reviews INTEGER DEFAULT 0,
+  created_at TIMESTAMP DEFAULT NOW(),
+  updated_at TIMESTAMP DEFAULT NOW()
+);
+
+CREATE INDEX idx_artists_email ON artists(email);
+CREATE INDEX idx_artists_categories ON artists USING GIN(categories);
+
+ALTER TABLE artists ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Artists can view their own data" ON artists
+  FOR SELECT USING (auth.uid()::text = id::text);
+```
+
+### `migrations/002_create_orders_table.sql`
+```sql
+CREATE TABLE IF NOT EXISTS orders (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  client_id UUID NOT NULL,
+  artist_id UUID NOT NULL REFERENCES artists(id) ON DELETE CASCADE,
+  title VARCHAR(255) NOT NULL,
+  description TEXT,
+  occasion VARCHAR(100),
+  names TEXT[] DEFAULT '{}',
+  reference_links TEXT[] DEFAULT '{}',
+  deadline TIMESTAMP NOT NULL,
+  additional_instructions TEXT,
+  base_price DECIMAL(10, 2) NOT NULL CHECK (base_price > 0),
+  status VARCHAR(50) DEFAULT 'PROPOSED',
+  created_at TIMESTAMP DEFAULT NOW(),
+  updated_at TIMESTAMP DEFAULT NOW()
+);
+
+CREATE INDEX idx_orders_artist_id ON orders(artist_id);
+CREATE INDEX idx_orders_client_id ON orders(client_id);
+CREATE INDEX idx_orders_status ON orders(status);
+CREATE INDEX idx_orders_deadline ON orders(deadline);
+
+ALTER TABLE orders ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Users can view their orders" ON orders
+  FOR SELECT USING (auth.uid()::text = client_id::text OR auth.uid()::text = artist_id::text);
+```
+
+### `migrations/003_create_payments_table.sql`
+```sql
+CREATE TABLE IF NOT EXISTS payments (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  order_id UUID NOT NULL REFERENCES orders(id) ON DELETE CASCADE,
+  amount BIGINT NOT NULL CHECK (amount > 0),
+  currency VARCHAR(3) DEFAULT 'BRL',
+  status VARCHAR(50) DEFAULT 'PENDING',
+  provider VARCHAR(50) NOT NULL,
+  transaction_id VARCHAR(255) NOT NULL UNIQUE,
+  created_at TIMESTAMP DEFAULT NOW(),
+  updated_at TIMESTAMP DEFAULT NOW()
+);
+
+CREATE INDEX idx_payments_order_id ON payments(order_id);
+CREATE INDEX idx_payments_status ON payments(status);
+CREATE INDEX idx_payments_transaction_id ON payments(transaction_id);
+
+ALTER TABLE payments ENABLE ROW LEVEL SECURITY;
+```
+
+### `migrations/004_create_media_table.sql`
+```sql
+CREATE TABLE IF NOT EXISTS media (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  artist_id UUID NOT NULL REFERENCES artists(id) ON DELETE CASCADE,
+  file_name VARCHAR(255) NOT NULL,
+  file_size BIGINT NOT NULL CHECK (file_size <= 26214400),
+  file_url TEXT NOT NULL,
+  mime_type VARCHAR(100) NOT NULL,
+  uploaded_at TIMESTAMP DEFAULT NOW()
+);
+
+CREATE INDEX idx_media_artist_id ON media(artist_id);
+
+ALTER TABLE media ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Artists can view their media" ON media
+  FOR SELECT USING (auth.uid()::text = artist_id::text);
+```
+
+### `migrations/005_create_reviews_table.sql`
+```sql
+CREATE TABLE IF NOT EXISTS reviews (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  order_id UUID NOT NULL REFERENCES orders(id) ON DELETE CASCADE,
+  artist_id UUID NOT NULL REFERENCES artists(id) ON DELETE CASCADE,
+  client_id UUID NOT NULL,
+  rating INTEGER NOT NULL CHECK (rating >= 1 AND rating <= 5),
+  comment TEXT CHECK (LENGTH(comment) <= 500),
+  created_at TIMESTAMP DEFAULT NOW()
+);
+
+CREATE INDEX idx_reviews_artist_id ON reviews(artist_id);
+CREATE INDEX idx_reviews_order_id ON reviews(order_id);
+CREATE UNIQUE INDEX idx_reviews_unique_order ON reviews(order_id);
+
+ALTER TABLE reviews ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Everyone can view reviews" ON reviews FOR SELECT USING (true);
+```
+
+---
+
+## 9. ESTRUTURA DE PASTAS
+
+```
+src/
+├── modules/
+│   ├── auth/
+│   │   ├── domain/
+│   │   │   ├── jwt-service.js
+│   │   │   └── password-service.js
+│   │   └── application/
+│   │       ├── login-usecase.js
+│   │       └── refresh-token-usecase.js
+│   │
+│   ├── payments/
+│   │   ├── domain/
+│   │   │   ├── payment-gateway-port.js
+│   │   │   └── payment-entity.js
+│   │   ├── application/
+│   │   │   ├── payment-gateway-factory.js
+│   │   │   ├── create-checkout-usecase.js
+│   │   │   └── confirm-payment-usecase.js
+│   │   └── infra/
+│   │       ├── adapters/
+│   │       │   ├── stripe-adapter.js
+│   │       │   └── asaas-adapter.js
+│   │       └── repositories/
+│   │           └── payment-repository.js
+│   │
+│   ├── orders/
+│   │   ├── domain/
+│   │   │   ├── order-states.js
+│   │   │   └── order-entity.js
+│   │   ├── application/
+│   │   │   └── create-order-usecase.js
+│   │   └── infra/
+│   │       └── repositories/
+│   │           └── order-repository.js
+│   │
+│   ├── artists/
+│   │   ├── domain/
+│   │   │   ├── artist-entity.js
+│   │   │   └── media-entity.js
+│   │   ├── application/
+│   │   │   ├── create-artist-usecase.js
+│   │   │   └── upload-video-usecase.js
+│   │   └── infra/
+│   │       └── repositories/
+│   │           └── artist-repository.js
+│   │
+│   ├── reviews/
+│   │   ├── domain/
+│   │   │   └── review-entity.js
+│   │   ├── application/
+│   │   │   └── create-review-usecase.js
+│   │   └── infra/
+│   │       └── repositories/
+│   │           └── review-repository.js
+│   │
+│   └── notifications/
+│       └── application/
+│           └── notification-service.js
+│
+├── shared/
+│   └── event-bus.js
+│
+└── infra/
+    ├── database/
+    │   └── migrations/
+    │       └── *.sql
+    └── http/
+        └── controllers/
+```
+
+---
+
+## 10. CHECKLIST DE IMPLEMENTAÇÃO
+
+- [ ] Estrutura de pastas criada
+- [ ] JWT com access token + refresh token
+- [ ] Password hashing com bcrypt
+- [ ] Payment Gateway Factory (Stripe + Asaas)
+- [ ] StripeAdapter implementado
+- [ ] AsaasAdapter implementado
+- [ ] Order States e máquina de estados
+- [ ] Artist Entity com validações
+- [ ] Upload de vídeos (máx 25MB)
+- [ ] Event Bus para notificações
+- [ ] Review desacoplado via Event Bus
+- [ ] Migrations SQL com RLS
+- [ ] Encryption para bank_data
+- [ ] Repositories com Supabase
