@@ -891,6 +891,94 @@ export function useGetArtist<
 }
 
 /**
+ * @summary Get public portfolio media for an artist
+ */
+export const getGetArtistMediaUrl = (artistId: string) => {
+  return `/api/artists/${artistId}/media`;
+};
+
+export const getArtistMedia = async (
+  artistId: string,
+  options?: RequestInit,
+): Promise<MediaListResponse> => {
+  return customFetch<MediaListResponse>(getGetArtistMediaUrl(artistId), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getGetArtistMediaQueryKey = (artistId: string) => {
+  return [`/api/artists/${artistId}/media`] as const;
+};
+
+export const getGetArtistMediaQueryOptions = <
+  TData = Awaited<ReturnType<typeof getArtistMedia>>,
+  TError = ErrorType<unknown>,
+>(
+  artistId: string,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getArtistMedia>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ?? getGetArtistMediaQueryKey(artistId);
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof getArtistMedia>>> = ({
+    signal,
+  }) => getArtistMedia(artistId, { signal, ...requestOptions });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled: !!artistId,
+    ...queryOptions,
+  } as UseQueryOptions<
+    Awaited<ReturnType<typeof getArtistMedia>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetArtistMediaQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getArtistMedia>>
+>;
+export type GetArtistMediaQueryError = ErrorType<unknown>;
+
+/**
+ * @summary Get public portfolio media for an artist
+ */
+
+export function useGetArtistMedia<
+  TData = Awaited<ReturnType<typeof getArtistMedia>>,
+  TError = ErrorType<unknown>,
+>(
+  artistId: string,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getArtistMedia>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetArtistMediaQueryOptions(artistId, options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
  * @summary List orders for current artist
  */
 export const getListOrdersUrl = (params?: ListOrdersParams) => {

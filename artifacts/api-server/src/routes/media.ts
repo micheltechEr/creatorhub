@@ -107,6 +107,27 @@ router.delete("/media/:id", requireAuth, async (req: AuthRequest, res) => {
   res.json({ message: "Arquivo removido com sucesso" });
 });
 
+// Public route: list portfolio media for a specific artist
+router.get("/artists/:artistId/media", async (req, res) => {
+  const [media, countResult] = await Promise.all([
+    db.select().from(mediaTable).where(eq(mediaTable.artistId, req.params.artistId as string)).orderBy(sql`${mediaTable.uploadedAt} DESC`),
+    db.select({ count: sql<number>`count(*)` }).from(mediaTable).where(eq(mediaTable.artistId, req.params.artistId as string)),
+  ]);
+
+  res.json({
+    media: media.map((m) => ({
+      id: m.id,
+      artistId: m.artistId,
+      fileName: m.fileName,
+      fileSize: Number(m.fileSize),
+      fileUrl: m.fileUrl,
+      mimeType: m.mimeType,
+      uploadedAt: m.uploadedAt,
+    })),
+    total: Number(countResult[0]?.count ?? 0),
+  });
+});
+
 // Serve uploaded files
 router.get("/media/file/:filename", (req, res) => {
   const filePath = path.join(uploadDir, req.params.filename);

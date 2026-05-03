@@ -14,6 +14,7 @@ export const artistsTable = pgTable("artists", {
   availability: boolean("availability").notNull().default(true),
   rating: decimal("rating", { precision: 3, scale: 2 }).notNull().default("0"),
   totalReviews: integer("total_reviews").notNull().default(0),
+  bio: text("bio"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });

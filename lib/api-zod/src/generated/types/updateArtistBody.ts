@@ -8,6 +8,7 @@
 
 export interface UpdateArtistBody {
   name?: string;
+  bio?: string | null;
   categories?: string[];
   tags?: string[];
   basePrice?: number;

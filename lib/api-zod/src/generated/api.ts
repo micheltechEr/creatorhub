@@ -78,6 +78,7 @@ export const GetMeResponse = zod.object({
   id: zod.string(),
   name: zod.string(),
   email: zod.string(),
+  bio: zod.string().nullish(),
   categories: zod.array(zod.string()),
   tags: zod.array(zod.string()),
   basePrice: zod.number(),
@@ -93,6 +94,7 @@ export const GetMeResponse = zod.object({
  */
 export const UpdateMeBody = zod.object({
   name: zod.string().optional(),
+  bio: zod.string().nullish(),
   categories: zod.array(zod.string()).optional(),
   tags: zod.array(zod.string()).optional(),
   basePrice: zod.number().optional(),
@@ -103,6 +105,7 @@ export const UpdateMeResponse = zod.object({
   id: zod.string(),
   name: zod.string(),
   email: zod.string(),
+  bio: zod.string().nullish(),
   categories: zod.array(zod.string()),
   tags: zod.array(zod.string()),
   basePrice: zod.number(),
@@ -124,6 +127,7 @@ export const ToggleAvailabilityResponse = zod.object({
   id: zod.string(),
   name: zod.string(),
   email: zod.string(),
+  bio: zod.string().nullish(),
   categories: zod.array(zod.string()),
   tags: zod.array(zod.string()),
   basePrice: zod.number(),
@@ -155,6 +159,7 @@ export const ListArtistsResponse = zod.object({
       id: zod.string(),
       name: zod.string(),
       email: zod.string(),
+      bio: zod.string().nullish(),
       categories: zod.array(zod.string()),
       tags: zod.array(zod.string()),
       basePrice: zod.number(),
@@ -179,6 +184,7 @@ export const GetArtistResponse = zod.object({
   id: zod.string(),
   name: zod.string(),
   email: zod.string(),
+  bio: zod.string().nullish(),
   categories: zod.array(zod.string()),
   tags: zod.array(zod.string()),
   basePrice: zod.number(),
@@ -187,6 +193,28 @@ export const GetArtistResponse = zod.object({
   rating: zod.number(),
   totalReviews: zod.number(),
   createdAt: zod.coerce.date(),
+});
+
+/**
+ * @summary Get public portfolio media for an artist
+ */
+export const GetArtistMediaParams = zod.object({
+  artistId: zod.coerce.string(),
+});
+
+export const GetArtistMediaResponse = zod.object({
+  media: zod.array(
+    zod.object({
+      id: zod.string(),
+      artistId: zod.string(),
+      fileName: zod.string(),
+      fileSize: zod.number(),
+      fileUrl: zod.string(),
+      mimeType: zod.string(),
+      uploadedAt: zod.coerce.date(),
+    }),
+  ),
+  total: zod.number(),
 });
 
 /**

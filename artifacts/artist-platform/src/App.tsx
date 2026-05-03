@@ -8,6 +8,7 @@ import OrderDetail from "@/pages/order-detail";
 import Media from "@/pages/media";
 import Profile from "@/pages/profile";
 import Reviews from "@/pages/reviews";
+import ArtistPublic from "@/pages/artist-public";
 import { Layout } from "@/components/layout";
 import { useEffect } from "react";
 import { Toaster } from "@/components/ui/sonner";
@@ -71,6 +72,8 @@ export default function App() {
         <Route path="/reviews">
           {() => <ProtectedRoute component={Reviews} />}
         </Route>
+
+        <Route path="/p/:artistId" component={ArtistPublic} />
 
         <Route path="/" component={RedirectRoot} />
       </Switch>

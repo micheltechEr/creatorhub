@@ -18,6 +18,7 @@ const formatArtist = (a: typeof artistsTable.$inferSelect) => ({
   availability: a.availability,
   rating: Number(a.rating),
   totalReviews: a.totalReviews,
+  bio: a.bio ?? null,
   createdAt: a.createdAt,
 });
 
@@ -50,6 +51,7 @@ router.put("/artists/me", requireAuth, async (req: AuthRequest, res) => {
   if (data.tags !== undefined) updates.tags = data.tags;
   if (data.basePrice !== undefined) updates.basePrice = String(data.basePrice);
   if (data.deliveryDays !== undefined) updates.deliveryDays = data.deliveryDays;
+  if ((data as any).bio !== undefined) updates.bio = (data as any).bio;
   updates.updatedAt = new Date();
 
   const [artist] = await db

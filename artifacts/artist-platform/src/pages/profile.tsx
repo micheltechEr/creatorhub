@@ -13,7 +13,8 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { formatCurrency } from "@/lib/format";
-import { X, Star, Pencil, Check } from "lucide-react";
+import { Textarea } from "@/components/ui/textarea";
+import { X, Star, Pencil, Check, ExternalLink, Copy } from "lucide-react";
 import { toast } from "sonner";
 
 const CATEGORIES = [
@@ -43,6 +44,7 @@ export default function Profile() {
 
   const [formData, setFormData] = useState({
     name: "",
+    bio: "",
     categories: [] as string[],
     tags: [] as string[],
     basePrice: 0,
@@ -53,6 +55,7 @@ export default function Profile() {
     if (artist) {
       setFormData({
         name: artist.name,
+        bio: (artist as any).bio ?? "",
         categories: artist.categories,
         tags: artist.tags,
         basePrice: artist.basePrice,
@@ -118,6 +121,13 @@ export default function Profile() {
 
   if (!artist) return null;
 
+  const publicUrl = `/p/${artist.id}`;
+  const copyPublicLink = () => {
+    const fullUrl = `${window.location.origin}${publicUrl}`;
+    navigator.clipboard.writeText(fullUrl);
+    toast.success("Link copiado!");
+  };
+
   return (
     <div className="space-y-6 max-w-4xl">
       {/* Header */}
@@ -129,13 +139,23 @@ export default function Profile() {
           </p>
         </div>
         {!editing ? (
-          <Button
-            onClick={startEdit}
-            className="bg-[#0A0A0A] text-white hover:bg-[#1F1F1F] text-sm font-semibold"
-            style={{ borderRadius: "2px" }}
-          >
-            <Pencil className="mr-2 h-3.5 w-3.5" /> Editar Perfil
-          </Button>
+          <div className="flex gap-2">
+            <Button
+              variant="outline"
+              onClick={copyPublicLink}
+              className="text-sm border-border font-semibold"
+              style={{ borderRadius: "2px" }}
+            >
+              <Copy className="mr-2 h-3.5 w-3.5" /> Copiar Link Público
+            </Button>
+            <Button
+              onClick={startEdit}
+              className="bg-[#0A0A0A] text-white hover:bg-[#1F1F1F] text-sm font-semibold"
+              style={{ borderRadius: "2px" }}
+            >
+              <Pencil className="mr-2 h-3.5 w-3.5" /> Editar Perfil
+            </Button>
+          </div>
         ) : (
           <div className="flex gap-2">
             <Button
@@ -220,6 +240,44 @@ export default function Profile() {
         </div>
       </div>
 
+      {/* Public link */}
+      <div
+        className="bg-white border border-[#C9A961]/30 p-5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3"
+        style={cardStyle}
+      >
+        <div>
+          <p className="text-sm font-semibold text-foreground">Seu Link Público</p>
+          <p className="text-xs text-muted-foreground mt-0.5 font-mono break-all">
+            {window.location.origin}{publicUrl}
+          </p>
+        </div>
+        <div className="flex gap-2 shrink-0">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={copyPublicLink}
+            className="text-xs border-border font-semibold"
+            style={{ borderRadius: "2px" }}
+          >
+            <Copy className="mr-1.5 h-3 w-3" /> Copiar
+          </Button>
+          <a
+            href={publicUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            <Button
+              variant="outline"
+              size="sm"
+              className="text-xs border-border font-semibold"
+              style={{ borderRadius: "2px" }}
+            >
+              <ExternalLink className="mr-1.5 h-3 w-3" /> Visualizar
+            </Button>
+          </a>
+        </div>
+      </div>
+
       {/* Profile info */}
       <div className="bg-white border border-border" style={cardStyle}>
         <div className="px-6 py-4 border-b border-border">
@@ -239,6 +297,26 @@ export default function Profile() {
               />
             ) : (
               <p className="text-sm font-medium text-foreground">{artist.name}</p>
+            )}
+          </div>
+
+          <div className="space-y-1.5">
+            <Label className="text-xs font-medium uppercase tracking-[0.5px] text-[#1F1F1F]">
+              Bio / Apresentação
+            </Label>
+            {editing ? (
+              <Textarea
+                value={formData.bio}
+                onChange={(e) => setFormData((p) => ({ ...p, bio: e.target.value }))}
+                placeholder="Fale sobre você, seu estilo, experiência..."
+                rows={4}
+                className="text-sm border-border resize-none"
+                style={inputStyle}
+              />
+            ) : (
+              <p className="text-sm text-muted-foreground leading-relaxed">
+                {(artist as any).bio || <span className="italic">Nenhuma bio adicionada</span>}
+              </p>
             )}
           </div>
 

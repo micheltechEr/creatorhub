@@ -10,6 +10,7 @@ export interface Artist {
   id: string;
   name: string;
   email: string;
+  bio?: string | null;
   categories: string[];
   tags: string[];
   basePrice: number;
