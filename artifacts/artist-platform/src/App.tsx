@@ -11,6 +11,7 @@ import { Switch, Route, useLocation, Router as WouterRouter, Redirect } from "wo
 import { QueryClientProvider, useQueryClient } from "@tanstack/react-query";
 import { queryClient } from "./lib/queryClient";
 import { ClerkTokenBridge } from "./lib/auth-context";
+import { api } from "@/lib/api";
 import { Layout } from "@/components/layout";
 import { AdminLayout } from "@/components/admin-layout";
 import Dashboard from "@/pages/dashboard";
@@ -123,6 +124,19 @@ function HomeRedirect() {
   if (!isSignedIn) return <Redirect to="/sign-in" />;
   if (user?.role === "superadmin") return <Redirect to="/admin" />;
   return <Redirect to="/dashboard" />;
+}
+
+function AutoBootstrapUser() {
+  const { isSignedIn, isLoaded } = useUser();
+  const ran = useRef(false);
+
+  useEffect(() => {
+    if (!isLoaded || !isSignedIn || ran.current) return;
+    ran.current = true;
+    void api.post("/users/bootstrap-from-clerk").catch(() => undefined);
+  }, [isLoaded, isSignedIn]);
+
+  return null;
 }
 
 /**
@@ -263,6 +277,7 @@ function ClerkProviderWithRoutes() {
     >
       <QueryClientProvider client={queryClient}>
         <ClerkQueryClientCacheInvalidator />
+        <AutoBootstrapUser />
         <ClerkTokenBridge />
         <Switch>
           {/* Public */}
