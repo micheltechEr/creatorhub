@@ -9,6 +9,7 @@ import dashboardRouter from "./dashboard";
 import usersRouter from "./users";
 import adminRouter from "./admin";
 import clientsRouter from "./clients";
+import contractsRouter from "./contracts";
 
 const router: IRouter = Router();
 
@@ -22,5 +23,6 @@ router.use(reviewsRouter);
 router.use(dashboardRouter);
 router.use("/admin", adminRouter);
 router.use(clientsRouter);
+router.use(contractsRouter);
 
 export default router;

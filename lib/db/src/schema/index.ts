@@ -6,3 +6,4 @@ export * from "./reviews";
 export * from "./refresh_tokens";
 export * from "./platform-users";
 export * from "./tenant-clients";
+export * from "./contracts";

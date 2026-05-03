@@ -1,6 +1,6 @@
 import { useClerk, useUser } from "@clerk/react";
 import { Link, useLocation } from "wouter";
-import { LayoutDashboard, ListOrdered, Video, User, Star, LogOut, Menu, Users } from "lucide-react";
+import { LayoutDashboard, ListOrdered, Video, User, Star, LogOut, Menu, Users, FileText } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { useGetMe, getGetMeQueryKey } from "@workspace/api-client-react";
@@ -8,12 +8,13 @@ import { useQueryClient } from "@tanstack/react-query";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 
 const navItems = [
-  { href: "/dashboard", label: "Dashboard",   icon: LayoutDashboard },
-  { href: "/orders",    label: "Pedidos",     icon: ListOrdered },
-  { href: "/clients",   label: "Clientes",    icon: Users },
-  { href: "/media",     label: "Portfólio",   icon: Video },
-  { href: "/profile",   label: "Perfil",      icon: User },
-  { href: "/reviews",   label: "Avaliações",  icon: Star },
+  { href: "/dashboard",  label: "Dashboard",   icon: LayoutDashboard },
+  { href: "/orders",     label: "Pedidos",     icon: ListOrdered },
+  { href: "/clients",    label: "Clientes",    icon: Users },
+  { href: "/contracts",  label: "Contratos",   icon: FileText },
+  { href: "/media",      label: "Portfólio",   icon: Video },
+  { href: "/profile",    label: "Perfil",      icon: User },
+  { href: "/reviews",    label: "Avaliações",  icon: Star },
 ];
 
 export function Layout({ children }: { children: React.ReactNode }) {
