@@ -44,6 +44,7 @@ import {
   DialogHeader,
   DialogTitle,
   DialogFooter,
+  DialogDescription,
 } from "@/components/ui/dialog";
 
 // ── Types ──────────────────────────────────────────────────────────────────────
@@ -653,8 +654,10 @@ export default function Contracts() {
           <DialogContent style={{ borderRadius: "2px" }}>
             <DialogHeader>
               <DialogTitle className="font-serif">Remover contrato</DialogTitle>
+              <DialogDescription>
+                Essa ação não pode ser desfeita. O contrato será excluído permanentemente.
+              </DialogDescription>
             </DialogHeader>
-            <p className="text-muted-foreground text-sm">Essa ação não pode ser desfeita. O contrato será excluído permanentemente.</p>
             <DialogFooter className="gap-2">
               <Button variant="outline" onClick={() => setDeleteId(null)} style={{ borderRadius: "2px" }}>Cancelar</Button>
               <Button
