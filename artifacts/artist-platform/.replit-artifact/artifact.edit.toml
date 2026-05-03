@@ -1,0 +1,31 @@
+kind = "web"
+previewPath = "/"
+title = "Artist Platform"
+version = "1.0.0"
+id = "artifacts/artist-platform"
+router = "path"
+
+[[integratedSkills]]
+name = "react-vite"
+version = "1.0.0"
+
+[[services]]
+name = "web"
+paths = ["/"]
+localPort = 25685
+
+[services.development]
+run = "pnpm --filter @workspace/artist-platform run dev"
+
+[services.production]
+build = ["pnpm", "--filter", "@workspace/artist-platform", "run", "build"]
+publicDir = "artifacts/artist-platform/dist/public"
+serve = "static"
+
+[[services.production.rewrites]]
+from = "/*"
+to = "/index.html"
+
+[services.env]
+PORT = "25685"
+BASE_PATH = "/"
