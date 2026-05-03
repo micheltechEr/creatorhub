@@ -50,6 +50,42 @@ router.get("/users/me", requireAuth, async (req: AuthRequest, res) => {
   });
 });
 
+router.post("/users/bootstrap-from-clerk", async (req, res) => {
+  const auth = getAuth(req);
+  if (!auth.userId) {
+    res.status(401).json({ error: "Unauthorized" });
+    return;
+  }
+
+  const email = auth.sessionClaims?.email || auth.sessionClaims?.primary_email_address || null;
+  const name =
+    auth.sessionClaims?.fullName ||
+    auth.sessionClaims?.first_name ||
+    auth.sessionClaims?.given_name ||
+    "Usuário";
+
+  const [existing] = await db
+    .select()
+    .from(platformUsersTable)
+    .where(eq(platformUsersTable.clerkUserId, auth.userId))
+    .limit(1);
+
+  if (existing) {
+    res.json({ ok: true });
+    return;
+  }
+
+  await db.insert(platformUsersTable).values({
+    clerkUserId: auth.userId,
+    email: String(email ?? ""),
+    name: String(name),
+    role: "client",
+    tenantId: null,
+  });
+
+  res.status(201).json({ ok: true });
+});
+
 // ── POST /users/bootstrap-admin — promote first user to superadmin ─────────────
 // Only works if NO superadmin exists yet. Used for initial platform setup.
 router.post("/users/bootstrap-admin", async (req, res) => {
