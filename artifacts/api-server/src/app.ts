@@ -45,13 +45,26 @@ app.use(
 const rawOrigins = process.env.ALLOWED_ORIGINS ?? "";
 const ALLOWED_ORIGINS: string[] = rawOrigins
   ? rawOrigins.split(",").map((o) => o.trim())
-  : ["http://localhost:5173", "http://localhost:3000"];
+  : [
+      "http://localhost:5173",
+      "http://localhost:3000",
+      "http://localhost:80",
+      "https://*.replit.dev",
+      "https://*.spock.replit.dev",
+    ];
 
 app.use(
   cors({
     origin: (origin, callback) => {
       if (!origin) return callback(null, true);
-      if (ALLOWED_ORIGINS.some((o) => origin.startsWith(o))) {
+      const allowed = ALLOWED_ORIGINS.some((o) => {
+        if (o.includes("*")) {
+          const prefix = o.split("*")[0];
+          return origin.startsWith(prefix);
+        }
+        return origin.startsWith(o);
+      });
+      if (allowed) {
         return callback(null, true);
       }
       callback(new Error(`CORS: origin not allowed — ${origin}`));
