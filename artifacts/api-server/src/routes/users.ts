@@ -12,7 +12,7 @@ router.get("/users/me", requireAuth, async (req: AuthRequest, res) => {
   const user = await db
     .select()
     .from(platformUsersTable)
-    .where(eq(platformUsersTable.id, req.userId!))
+    .where(eq(platformUsersTable.clerkUserId, req.clerkUserId!))
     .limit(1);
 
   if (!user[0]) {
