@@ -57,8 +57,9 @@ router.get("/media", requireAuth, async (req: AuthRequest, res) => {
   });
 });
 
-router.post("/media", requireAuth, upload.fields([{ name: "file", maxCount: 1 }, { name: "data", maxCount: 1 }]), async (req: AuthRequest, res) => {
-  const file = (req.files as { [fieldname: string]: Express.Multer.File[] } | undefined)?.file?.[0] ?? (req.files as { [fieldname: string]: Express.Multer.File[] } | undefined)?.data?.[0] ?? req.file;
+router.post("/media", requireAuth, upload.any(), async (req: AuthRequest, res) => {
+  const files = (req.files as Express.Multer.File[] | undefined) ?? [];
+  const file = req.file ?? files.find((item) => item.fieldname === "file") ?? files.find((item) => item.fieldname === "data") ?? files[0];
   if (!file) {
     const multipartKeys = req.body && typeof req.body === "object" ? Object.keys(req.body).join(", ") : "";
     req.log?.warn?.({ multipartKeys, hasBody: !!req.body }, "missing upload file");
