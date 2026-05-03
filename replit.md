@@ -1,27 +1,60 @@
-# Workspace
+# ArtistFlow Platform
 
-## Overview
+A full-stack marketplace for artists who create custom personalized videos.
 
-pnpm workspace monorepo using TypeScript. Each package manages its own dependencies.
+## Architecture
 
-## Stack
+### Services
 
-- **Monorepo tool**: pnpm workspaces
-- **Node.js version**: 24
-- **Package manager**: pnpm
-- **TypeScript version**: 5.9
-- **API framework**: Express 5
-- **Database**: PostgreSQL + Drizzle ORM
-- **Validation**: Zod (`zod/v4`), `drizzle-zod`
-- **API codegen**: Orval (from OpenAPI spec)
-- **Build**: esbuild (CJS bundle)
+| Service | Port | Path |
+|---------|------|------|
+| API Server (`@workspace/api-server`) | 8080 | `/api` |
+| Artist Platform (`@workspace/artist-platform`) | dynamic | `/` |
 
-## Key Commands
+### Key Libraries
+- `lib/api-spec` — OpenAPI spec (`openapi.yaml`) + Orval codegen config
+- `lib/api-zod` — Generated Zod validation schemas
+- `lib/api-client-react` — Generated React Query hooks
+- `lib/db` — Drizzle ORM schema + migrations
 
-- `pnpm run typecheck` — full typecheck across all packages
-- `pnpm run build` — typecheck + build all packages
-- `pnpm --filter @workspace/api-spec run codegen` — regenerate API hooks and Zod schemas from OpenAPI spec
-- `pnpm --filter @workspace/db run push` — push DB schema changes (dev only)
-- `pnpm --filter @workspace/api-server run dev` — run API server locally
+## Test Credentials
+- Email: `maria@artistflow.com`
+- Password: `password`
 
-See the `pnpm-workspace` skill for workspace structure, TypeScript setup, and package details.
+## Features
+
+### Frontend (`artifacts/artist-platform`)
+- **Login / Register** — JWT-based auth stored in localStorage
+- **Dashboard** — Earnings chart (Recharts), stats cards, recent orders, availability toggle
+- **Orders** — List with status filter, urgency alerts
+- **Order Detail** — Status state machine UI with action buttons, payment info, timeline progress
+- **Media Portfolio** — Drag-and-drop video upload (25MB max, MP4/MOV/AVI), delete with confirmation
+- **Profile** — Inline editing, category/tag management, availability toggle
+- **Reviews** — Star rating distribution chart, review list
+
+### Backend (`artifacts/api-server`)
+- **Auth** — bcrypt + JWT access tokens (30min) + refresh tokens (7 days)
+- **Artists** — CRUD, availability toggle, profile management
+- **Orders** — State machine: PROPOSED → PAYMENT_PENDING → PAID → IN_PROGRESS → DELIVERED → CANCELLED
+- **Payments** — Checkout session creation (Stripe/Asaas), confirmation webhook
+- **Media** — Multer disk upload, 25MB limit, file serving
+- **Reviews** — Create (requires DELIVERED order), list by artist with rating aggregation
+- **Dashboard** — Stats, recent orders, monthly earnings aggregation
+
+### Database Schema (PostgreSQL via Drizzle)
+- `artists` — Profile, pricing, rating, availability
+- `orders` — Full order with state machine status
+- `payments` — Payment records linked to orders
+- `media` — Uploaded video file metadata
+- `reviews` — Client reviews with rating
+- `refresh_tokens` — JWT refresh token store
+
+## Environment Variables
+- `DATABASE_URL` — PostgreSQL connection string
+- `SESSION_SECRET` — JWT signing secret (falls back to `dev-jwt-secret` in dev)
+- `PORT` — Assigned per workflow by Replit
+
+## Development Notes
+- Run codegen after OpenAPI changes: `pnpm --filter @workspace/api-spec run codegen`
+- Drizzle push: `pnpm --filter @workspace/db run db:push`
+- Never call service ports directly; use `localhost:80` through the shared proxy

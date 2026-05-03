@@ -3,20 +3,34 @@ info:
   # Do not change the title, if the title changes, the import paths will be broken
   title: Api
   version: 0.1.0
-  description: API specification
+  description: Artists Platform API
 servers:
   - url: /api
     description: Base API path
 tags:
   - name: health
     description: Health operations
+  - name: auth
+    description: Authentication operations
+  - name: artists
+    description: Artist management
+  - name: orders
+    description: Order management
+  - name: payments
+    description: Payment operations
+  - name: media
+    description: Media/video management
+  - name: reviews
+    description: Review management
+  - name: dashboard
+    description: Dashboard analytics
+
 paths:
   /healthz:
     get:
       operationId: healthCheck
       tags: [health]
       summary: Health check
-      description: Returns server health status
       responses:
         "200":
           description: Healthy
@@ -24,7 +38,607 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HealthStatus"
+
+  # AUTH
+  /auth/register:
+    post:
+      operationId: register
+      tags: [auth]
+      summary: Register a new artist
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RegisterBody"
+      responses:
+        "201":
+          description: Artist registered
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthResponse"
+        "400":
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /auth/login:
+    post:
+      operationId: login
+      tags: [auth]
+      summary: Login artist
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LoginBody"
+      responses:
+        "200":
+          description: Login successful
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthResponse"
+        "401":
+          description: Invalid credentials
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /auth/refresh:
+    post:
+      operationId: refreshToken
+      tags: [auth]
+      summary: Refresh access token
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RefreshTokenBody"
+      responses:
+        "200":
+          description: Token refreshed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RefreshTokenResponse"
+        "401":
+          description: Invalid refresh token
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /auth/logout:
+    post:
+      operationId: logout
+      tags: [auth]
+      summary: Logout artist
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Logged out
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MessageResponse"
+
+  # ARTISTS
+  /artists/me:
+    get:
+      operationId: getMe
+      tags: [artists]
+      summary: Get current artist profile
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Artist profile
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Artist"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+    put:
+      operationId: updateMe
+      tags: [artists]
+      summary: Update current artist profile
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateArtistBody"
+      responses:
+        "200":
+          description: Profile updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Artist"
+
+  /artists/me/availability:
+    patch:
+      operationId: toggleAvailability
+      tags: [artists]
+      summary: Toggle artist availability
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ToggleAvailabilityBody"
+      responses:
+        "200":
+          description: Availability updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Artist"
+
+  /artists:
+    get:
+      operationId: listArtists
+      tags: [artists]
+      summary: List all artists (public)
+      parameters:
+        - name: category
+          in: query
+          schema:
+            type: string
+        - name: available
+          in: query
+          schema:
+            type: boolean
+        - name: minPrice
+          in: query
+          schema:
+            type: number
+        - name: maxPrice
+          in: query
+          schema:
+            type: number
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 20
+        - name: offset
+          in: query
+          schema:
+            type: integer
+            default: 0
+      responses:
+        "200":
+          description: List of artists
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ArtistListResponse"
+
+  /artists/{id}:
+    get:
+      operationId: getArtist
+      tags: [artists]
+      summary: Get artist by ID (public)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Artist profile
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Artist"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  # ORDERS
+  /orders:
+    get:
+      operationId: listOrders
+      tags: [orders]
+      summary: List orders for current artist
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [PROPOSED, PAYMENT_PENDING, PAID, IN_PROGRESS, DELIVERED, CANCELLED]
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 20
+        - name: offset
+          in: query
+          schema:
+            type: integer
+            default: 0
+      responses:
+        "200":
+          description: List of orders
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OrderListResponse"
+
+    post:
+      operationId: createOrder
+      tags: [orders]
+      summary: Create a new order
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateOrderBody"
+      responses:
+        "201":
+          description: Order created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Order"
+        "400":
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /orders/{id}:
+    get:
+      operationId: getOrder
+      tags: [orders]
+      summary: Get order by ID
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Order details
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Order"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /orders/{id}/status:
+    patch:
+      operationId: updateOrderStatus
+      tags: [orders]
+      summary: Update order status
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateOrderStatusBody"
+      responses:
+        "200":
+          description: Order updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Order"
+        "400":
+          description: Invalid transition
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  # PAYMENTS
+  /payments/checkout:
+    post:
+      operationId: createCheckout
+      tags: [payments]
+      summary: Create payment checkout
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateCheckoutBody"
+      responses:
+        "200":
+          description: Checkout created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CheckoutResponse"
+        "400":
+          description: Error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /payments/confirm:
+    post:
+      operationId: confirmPayment
+      tags: [payments]
+      summary: Confirm payment
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ConfirmPaymentBody"
+      responses:
+        "200":
+          description: Payment confirmed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Payment"
+
+  /payments/order/{orderId}:
+    get:
+      operationId: getPaymentByOrder
+      tags: [payments]
+      summary: Get payment for an order
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: orderId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Payment details
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Payment"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  # MEDIA
+  /media:
+    get:
+      operationId: listMedia
+      tags: [media]
+      summary: List media for current artist
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: List of media
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MediaListResponse"
+
+    post:
+      operationId: uploadMedia
+      tags: [media]
+      summary: Upload a video file (max 25MB)
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                file:
+                  type: string
+                  format: binary
+              required:
+                - file
+      responses:
+        "201":
+          description: Media uploaded
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Media"
+        "400":
+          description: File too large or invalid type
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /media/{id}:
+    delete:
+      operationId: deleteMedia
+      tags: [media]
+      summary: Delete media file
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Deleted
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MessageResponse"
+
+  # REVIEWS
+  /reviews:
+    post:
+      operationId: createReview
+      tags: [reviews]
+      summary: Create a review for a delivered order
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateReviewBody"
+      responses:
+        "201":
+          description: Review created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Review"
+        "400":
+          description: Error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /reviews/artist/{artistId}:
+    get:
+      operationId: getArtistReviews
+      tags: [reviews]
+      summary: Get all reviews for an artist
+      parameters:
+        - name: artistId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 20
+        - name: offset
+          in: query
+          schema:
+            type: integer
+            default: 0
+      responses:
+        "200":
+          description: List of reviews
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ReviewListResponse"
+
+  # DASHBOARD (wow endpoints)
+  /dashboard/stats:
+    get:
+      operationId: getDashboardStats
+      tags: [dashboard]
+      summary: Get dashboard stats for current artist
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Dashboard statistics
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DashboardStats"
+
+  /dashboard/recent-orders:
+    get:
+      operationId: getRecentOrders
+      tags: [dashboard]
+      summary: Get recent orders with enriched details
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 10
+      responses:
+        "200":
+          description: Recent orders
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RecentOrdersResponse"
+
+  /dashboard/earnings:
+    get:
+      operationId: getEarnings
+      tags: [dashboard]
+      summary: Get monthly earnings breakdown
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: months
+          in: query
+          schema:
+            type: integer
+            default: 6
+      responses:
+        "200":
+          description: Earnings breakdown
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/EarningsResponse"
+
 components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
   schemas:
     HealthStatus:
       type: object
@@ -34,3 +648,618 @@ components:
       required:
         - status
 
+    ErrorResponse:
+      type: object
+      properties:
+        error:
+          type: string
+        message:
+          type: string
+      required:
+        - error
+
+    MessageResponse:
+      type: object
+      properties:
+        message:
+          type: string
+      required:
+        - message
+
+    # AUTH SCHEMAS
+    RegisterBody:
+      type: object
+      properties:
+        name:
+          type: string
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+          minLength: 8
+        categories:
+          type: array
+          items:
+            type: string
+          minItems: 1
+        tags:
+          type: array
+          items:
+            type: string
+        basePrice:
+          type: number
+          minimum: 0.01
+        deliveryDays:
+          type: integer
+          minimum: 1
+          maximum: 180
+      required:
+        - name
+        - email
+        - password
+        - categories
+        - basePrice
+        - deliveryDays
+
+    LoginBody:
+      type: object
+      properties:
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+      required:
+        - email
+        - password
+
+    RefreshTokenBody:
+      type: object
+      properties:
+        refreshToken:
+          type: string
+      required:
+        - refreshToken
+
+    AuthUser:
+      type: object
+      properties:
+        id:
+          type: string
+        email:
+          type: string
+        name:
+          type: string
+      required:
+        - id
+        - email
+        - name
+
+    AuthResponse:
+      type: object
+      properties:
+        accessToken:
+          type: string
+        refreshToken:
+          type: string
+        expiresIn:
+          type: integer
+        user:
+          $ref: "#/components/schemas/AuthUser"
+      required:
+        - accessToken
+        - refreshToken
+        - expiresIn
+        - user
+
+    RefreshTokenResponse:
+      type: object
+      properties:
+        accessToken:
+          type: string
+        expiresIn:
+          type: integer
+      required:
+        - accessToken
+        - expiresIn
+
+    # ARTIST SCHEMAS
+    Artist:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        email:
+          type: string
+        categories:
+          type: array
+          items:
+            type: string
+        tags:
+          type: array
+          items:
+            type: string
+        basePrice:
+          type: number
+        deliveryDays:
+          type: integer
+        availability:
+          type: boolean
+        rating:
+          type: number
+        totalReviews:
+          type: integer
+        createdAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - name
+        - email
+        - categories
+        - tags
+        - basePrice
+        - deliveryDays
+        - availability
+        - rating
+        - totalReviews
+        - createdAt
+
+    ArtistListResponse:
+      type: object
+      properties:
+        artists:
+          type: array
+          items:
+            $ref: "#/components/schemas/Artist"
+        total:
+          type: integer
+      required:
+        - artists
+        - total
+
+    UpdateArtistBody:
+      type: object
+      properties:
+        name:
+          type: string
+        categories:
+          type: array
+          items:
+            type: string
+        tags:
+          type: array
+          items:
+            type: string
+        basePrice:
+          type: number
+        deliveryDays:
+          type: integer
+
+    ToggleAvailabilityBody:
+      type: object
+      properties:
+        availability:
+          type: boolean
+      required:
+        - availability
+
+    # ORDER SCHEMAS
+    OrderStatus:
+      type: string
+      enum:
+        - PROPOSED
+        - PAYMENT_PENDING
+        - PAID
+        - IN_PROGRESS
+        - DELIVERED
+        - CANCELLED
+
+    Order:
+      type: object
+      properties:
+        id:
+          type: string
+        clientId:
+          type: string
+        artistId:
+          type: string
+        title:
+          type: string
+        description:
+          type: string
+        occasion:
+          type: string
+        names:
+          type: array
+          items:
+            type: string
+        referenceLinks:
+          type: array
+          items:
+            type: string
+        deadline:
+          type: string
+          format: date-time
+        additionalInstructions:
+          type: string
+        basePrice:
+          type: number
+        status:
+          $ref: "#/components/schemas/OrderStatus"
+        clientName:
+          type: string
+        clientEmail:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - clientId
+        - artistId
+        - title
+        - deadline
+        - basePrice
+        - status
+        - createdAt
+
+    OrderListResponse:
+      type: object
+      properties:
+        orders:
+          type: array
+          items:
+            $ref: "#/components/schemas/Order"
+        total:
+          type: integer
+      required:
+        - orders
+        - total
+
+    CreateOrderBody:
+      type: object
+      properties:
+        artistId:
+          type: string
+        clientName:
+          type: string
+        clientEmail:
+          type: string
+          format: email
+        title:
+          type: string
+        description:
+          type: string
+        occasion:
+          type: string
+        names:
+          type: array
+          items:
+            type: string
+        referenceLinks:
+          type: array
+          items:
+            type: string
+        deadline:
+          type: string
+          format: date-time
+        additionalInstructions:
+          type: string
+        basePrice:
+          type: number
+      required:
+        - artistId
+        - clientName
+        - clientEmail
+        - title
+        - deadline
+
+    UpdateOrderStatusBody:
+      type: object
+      properties:
+        status:
+          $ref: "#/components/schemas/OrderStatus"
+        deliveryVideoUrl:
+          type: string
+      required:
+        - status
+
+    # PAYMENT SCHEMAS
+    Payment:
+      type: object
+      properties:
+        id:
+          type: string
+        orderId:
+          type: string
+        amount:
+          type: integer
+        currency:
+          type: string
+        status:
+          type: string
+          enum: [PENDING, CONFIRMED, REFUNDED, FAILED]
+        provider:
+          type: string
+          enum: [stripe, asaas]
+        transactionId:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - orderId
+        - amount
+        - currency
+        - status
+        - provider
+        - createdAt
+
+    CreateCheckoutBody:
+      type: object
+      properties:
+        orderId:
+          type: string
+        provider:
+          type: string
+          enum: [stripe, asaas]
+      required:
+        - orderId
+
+    CheckoutResponse:
+      type: object
+      properties:
+        checkoutUrl:
+          type: string
+        sessionId:
+          type: string
+        expiresAt:
+          type: string
+          format: date-time
+      required:
+        - checkoutUrl
+        - sessionId
+
+    ConfirmPaymentBody:
+      type: object
+      properties:
+        sessionId:
+          type: string
+        provider:
+          type: string
+          enum: [stripe, asaas]
+      required:
+        - sessionId
+        - provider
+
+    # MEDIA SCHEMAS
+    Media:
+      type: object
+      properties:
+        id:
+          type: string
+        artistId:
+          type: string
+        fileName:
+          type: string
+        fileSize:
+          type: integer
+        fileUrl:
+          type: string
+        mimeType:
+          type: string
+        uploadedAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - artistId
+        - fileName
+        - fileSize
+        - fileUrl
+        - mimeType
+        - uploadedAt
+
+    MediaListResponse:
+      type: object
+      properties:
+        media:
+          type: array
+          items:
+            $ref: "#/components/schemas/Media"
+        total:
+          type: integer
+      required:
+        - media
+        - total
+
+    # REVIEW SCHEMAS
+    Review:
+      type: object
+      properties:
+        id:
+          type: string
+        orderId:
+          type: string
+        artistId:
+          type: string
+        clientId:
+          type: string
+        rating:
+          type: integer
+          minimum: 1
+          maximum: 5
+        comment:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - orderId
+        - artistId
+        - clientId
+        - rating
+        - createdAt
+
+    ReviewListResponse:
+      type: object
+      properties:
+        reviews:
+          type: array
+          items:
+            $ref: "#/components/schemas/Review"
+        total:
+          type: integer
+        averageRating:
+          type: number
+      required:
+        - reviews
+        - total
+        - averageRating
+
+    CreateReviewBody:
+      type: object
+      properties:
+        orderId:
+          type: string
+        clientId:
+          type: string
+        rating:
+          type: integer
+          minimum: 1
+          maximum: 5
+        comment:
+          type: string
+          maxLength: 500
+      required:
+        - orderId
+        - clientId
+        - rating
+
+    # DASHBOARD SCHEMAS
+    OrderStatusCount:
+      type: object
+      properties:
+        status:
+          $ref: "#/components/schemas/OrderStatus"
+        count:
+          type: integer
+      required:
+        - status
+        - count
+
+    DashboardStats:
+      type: object
+      properties:
+        totalEarnings:
+          type: number
+        pendingEarnings:
+          type: number
+        totalOrders:
+          type: integer
+        ordersByStatus:
+          type: array
+          items:
+            $ref: "#/components/schemas/OrderStatusCount"
+        rating:
+          type: number
+        totalReviews:
+          type: integer
+        availability:
+          type: boolean
+        completionRate:
+          type: number
+      required:
+        - totalEarnings
+        - pendingEarnings
+        - totalOrders
+        - ordersByStatus
+        - rating
+        - totalReviews
+        - availability
+        - completionRate
+
+    RecentOrder:
+      type: object
+      properties:
+        id:
+          type: string
+        title:
+          type: string
+        clientName:
+          type: string
+        clientEmail:
+          type: string
+        status:
+          $ref: "#/components/schemas/OrderStatus"
+        basePrice:
+          type: number
+        deadline:
+          type: string
+          format: date-time
+        daysRemaining:
+          type: integer
+        createdAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - title
+        - clientName
+        - status
+        - basePrice
+        - deadline
+        - daysRemaining
+        - createdAt
+
+    RecentOrdersResponse:
+      type: object
+      properties:
+        orders:
+          type: array
+          items:
+            $ref: "#/components/schemas/RecentOrder"
+      required:
+        - orders
+
+    MonthlyEarning:
+      type: object
+      properties:
+        month:
+          type: string
+        year:
+          type: integer
+        earnings:
+          type: number
+        orderCount:
+          type: integer
+      required:
+        - month
+        - year
+        - earnings
+        - orderCount
+
+    EarningsResponse:
+      type: object
+      properties:
+        monthly:
+          type: array
+          items:
+            $ref: "#/components/schemas/MonthlyEarning"
+        totalEarnings:
+          type: number
+        averageMonthly:
+          type: number
+      required:
+        - monthly
+        - totalEarnings
+        - averageMonthly
