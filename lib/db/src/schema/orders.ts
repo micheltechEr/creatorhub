@@ -31,6 +31,7 @@ export const ordersTable = pgTable("orders", {
   status: text("status").$type<OrderStatus>().notNull().default("PROPOSED"),
   clientName: text("client_name").notNull(),
   clientEmail: text("client_email").notNull(),
+  clientCpfCnpj: text("client_cpf_cnpj"),   // CPF or CNPJ — required for Asaas payments
   deliveryVideoUrl: text("delivery_video_url"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),

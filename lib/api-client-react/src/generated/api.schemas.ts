@@ -132,6 +132,8 @@ export interface CreateOrderBody {
   artistId: string;
   clientName: string;
   clientEmail: string;
+  /** CPF (11 digits) or CNPJ (14 digits) — used for Asaas payment */
+  clientCpfCnpj?: string;
   title: string;
   description?: string;
   occasion?: string;
@@ -183,14 +185,36 @@ export const CreateCheckoutBodyProvider = {
   asaas: "asaas",
 } as const;
 
+export type CreateCheckoutBodyBillingType =
+  (typeof CreateCheckoutBodyBillingType)[keyof typeof CreateCheckoutBodyBillingType];
+
+export const CreateCheckoutBodyBillingType = {
+  PIX: "PIX",
+  BOLETO: "BOLETO",
+  CREDIT_CARD: "CREDIT_CARD",
+} as const;
+
 export interface CreateCheckoutBody {
   orderId: string;
   provider?: CreateCheckoutBodyProvider;
+  billingType?: CreateCheckoutBodyBillingType;
+  /** CPF (11 digits) or CNPJ (14 digits) of the payer — required by Asaas */
+  cpfCnpj: string;
 }
 
 export interface CheckoutResponse {
-  checkoutUrl: string;
-  sessionId: string;
+  id: string;
+  orderId: string;
+  amount: number;
+  status: string;
+  billingType?: string;
+  checkoutUrl?: string | null;
+  invoiceUrl?: string | null;
+  boletoUrl?: string | null;
+  /** Base64-encoded QR code image */
+  pixQrCode?: string | null;
+  /** PIX copy-and-paste string */
+  pixCopiaECola?: string | null;
   expiresAt?: string;
 }
 

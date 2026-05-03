@@ -31,6 +31,7 @@ const formatOrder = (o: typeof ordersTable.$inferSelect) => ({
   status: o.status,
   clientName: o.clientName,
   clientEmail: o.clientEmail,
+  clientCpfCnpj: o.clientCpfCnpj,
   deliveryVideoUrl: o.deliveryVideoUrl,
   createdAt: o.createdAt,
   updatedAt: o.updatedAt,
@@ -81,6 +82,7 @@ router.post("/orders", async (req, res) => {
     basePrice: String(data.basePrice ?? Number(artist.basePrice)),
     clientName: data.clientName,
     clientEmail: data.clientEmail,
+    clientCpfCnpj: (data as any).clientCpfCnpj ?? null,
     status: "PROPOSED",
   }).returning();
 

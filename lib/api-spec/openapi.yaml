@@ -933,6 +933,9 @@ components:
         clientEmail:
           type: string
           format: email
+        clientCpfCnpj:
+          type: string
+          description: CPF (11 digits) or CNPJ (14 digits) — used for Asaas payment
         title:
           type: string
         description:
@@ -1011,22 +1014,55 @@ components:
         provider:
           type: string
           enum: [stripe, asaas]
+        billingType:
+          type: string
+          enum: [PIX, BOLETO, CREDIT_CARD]
+          default: PIX
+        cpfCnpj:
+          type: string
+          description: CPF (11 digits) or CNPJ (14 digits) of the payer — required by Asaas
       required:
         - orderId
+        - cpfCnpj
 
     CheckoutResponse:
       type: object
       properties:
+        id:
+          type: string
+        orderId:
+          type: string
+        amount:
+          type: integer
+        status:
+          type: string
+        billingType:
+          type: string
         checkoutUrl:
           type: string
-        sessionId:
+          nullable: true
+        invoiceUrl:
           type: string
+          nullable: true
+        boletoUrl:
+          type: string
+          nullable: true
+        pixQrCode:
+          type: string
+          description: Base64-encoded QR code image
+          nullable: true
+        pixCopiaECola:
+          type: string
+          description: PIX copy-and-paste string
+          nullable: true
         expiresAt:
           type: string
           format: date-time
       required:
-        - checkoutUrl
-        - sessionId
+        - id
+        - orderId
+        - amount
+        - status
 
     ConfirmPaymentBody:
       type: object

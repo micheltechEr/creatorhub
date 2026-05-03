@@ -5,9 +5,13 @@
  * Artists Platform API
  * OpenAPI spec version: 0.1.0
  */
+import type { CreateCheckoutBodyBillingType } from "./createCheckoutBodyBillingType";
 import type { CreateCheckoutBodyProvider } from "./createCheckoutBodyProvider";
 
 export interface CreateCheckoutBody {
   orderId: string;
   provider?: CreateCheckoutBodyProvider;
+  billingType?: CreateCheckoutBodyBillingType;
+  /** CPF (11 digits) or CNPJ (14 digits) of the payer — required by Asaas */
+  cpfCnpj: string;
 }

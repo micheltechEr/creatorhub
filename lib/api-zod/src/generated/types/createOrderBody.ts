@@ -10,6 +10,8 @@ export interface CreateOrderBody {
   artistId: string;
   clientName: string;
   clientEmail: string;
+  /** CPF (11 digits) or CNPJ (14 digits) — used for Asaas payment */
+  clientCpfCnpj?: string;
   title: string;
   description?: string;
   occasion?: string;

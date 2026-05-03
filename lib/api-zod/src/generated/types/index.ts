@@ -14,6 +14,7 @@ export * from "./checkoutResponse";
 export * from "./confirmPaymentBody";
 export * from "./confirmPaymentBodyProvider";
 export * from "./createCheckoutBody";
+export * from "./createCheckoutBodyBillingType";
 export * from "./createCheckoutBodyProvider";
 export * from "./createOrderBody";
 export * from "./createReviewBody";

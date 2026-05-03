@@ -27,7 +27,7 @@ A full-stack marketplace for artists who create custom personalized videos.
 - **Login / Register** — JWT-based auth stored in localStorage
 - **Dashboard** — Earnings chart (Recharts), stats cards, recent orders, availability toggle
 - **Orders** — List with status filter, urgency alerts
-- **Order Detail** — Status state machine UI with action buttons, payment info, timeline progress
+- **Order Detail** — Status state machine UI, Asaas checkout form (CPF/CNPJ + billing type selector), PIX QR code display, copia-e-cola copy button, invoice URL link
 - **Media Portfolio** — Drag-and-drop video upload (25MB max, MP4/MOV/AVI), delete with confirmation
 - **Profile** — Inline editing, category/tag management, availability toggle
 - **Reviews** — Star rating distribution chart, review list
@@ -36,14 +36,14 @@ A full-stack marketplace for artists who create custom personalized videos.
 - **Auth** — bcrypt + JWT access tokens (30min) + refresh tokens (7 days)
 - **Artists** — CRUD, availability toggle, profile management
 - **Orders** — State machine: PROPOSED → PAYMENT_PENDING → PAID → IN_PROGRESS → DELIVERED → CANCELLED
-- **Payments** — Checkout session creation (Stripe/Asaas), confirmation webhook
+- **Payments** — Real Asaas sandbox payments (PIX/Boleto/Credit Card); `findOrCreateCustomer` patches CPF/CNPJ on existing customers; PIX QR code fetched post-creation; Asaas webhook updates order/payment state automatically
 - **Media** — Multer disk upload, 25MB limit, file serving
 - **Reviews** — Create (requires DELIVERED order), list by artist with rating aggregation
 - **Dashboard** — Stats, recent orders, monthly earnings aggregation
 
 ### Database Schema (PostgreSQL via Drizzle)
 - `artists` — Profile, pricing, rating, availability
-- `orders` — Full order with state machine status
+- `orders` — Full order with state machine status + `client_cpf_cnpj` column (for Asaas)
 - `payments` — Payment records linked to orders
 - `media` — Uploaded video file metadata
 - `reviews` — Client reviews with rating

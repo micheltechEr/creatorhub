@@ -248,6 +248,10 @@ export const CreateOrderBody = zod.object({
   artistId: zod.string(),
   clientName: zod.string(),
   clientEmail: zod.string().email(),
+  clientCpfCnpj: zod
+    .string()
+    .optional()
+    .describe("CPF (11 digits) or CNPJ (14 digits) — used for Asaas payment"),
   title: zod.string(),
   description: zod.string().optional(),
   occasion: zod.string().optional(),
@@ -339,14 +343,32 @@ export const UpdateOrderStatusResponse = zod.object({
 /**
  * @summary Create payment checkout
  */
+export const createCheckoutBodyBillingTypeDefault = `PIX`;
+
 export const CreateCheckoutBody = zod.object({
   orderId: zod.string(),
   provider: zod.enum(["stripe", "asaas"]).optional(),
+  billingType: zod
+    .enum(["PIX", "BOLETO", "CREDIT_CARD"])
+    .default(createCheckoutBodyBillingTypeDefault),
+  cpfCnpj: zod
+    .string()
+    .describe(
+      "CPF (11 digits) or CNPJ (14 digits) of the payer — required by Asaas",
+    ),
 });
 
 export const CreateCheckoutResponse = zod.object({
-  checkoutUrl: zod.string(),
-  sessionId: zod.string(),
+  id: zod.string(),
+  orderId: zod.string(),
+  amount: zod.number(),
+  status: zod.string(),
+  billingType: zod.string().optional(),
+  checkoutUrl: zod.string().nullish(),
+  invoiceUrl: zod.string().nullish(),
+  boletoUrl: zod.string().nullish(),
+  pixQrCode: zod.string().nullish().describe("Base64-encoded QR code image"),
+  pixCopiaECola: zod.string().nullish().describe("PIX copy-and-paste string"),
   expiresAt: zod.coerce.date().optional(),
 });
 
