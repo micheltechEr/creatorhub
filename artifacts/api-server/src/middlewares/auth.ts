@@ -1,51 +1,56 @@
 import { Request, Response, NextFunction } from "express";
-import jwt from "jsonwebtoken";
+import { getAuth } from "@clerk/express";
+import { db } from "@workspace/db";
+import { artistsTable } from "@workspace/db";
+import { eq } from "drizzle-orm";
 import { logger } from "../lib/logger";
 
 export interface AuthRequest extends Request {
   artistId?: string;
   artistEmail?: string;
+  clerkUserId?: string;
 }
 
-const JWT_SECRET = process.env.JWT_SECRET ?? "dev-jwt-secret";
-
-if (!process.env.JWT_SECRET) {
-  logger.warn(
-    "JWT_SECRET is not set — using insecure dev default. Set it in production!",
-  );
-}
-
-export const requireAuth = (
+/**
+ * Verifies the Clerk session and resolves the artist profile from the DB.
+ * Returns 401 if not authenticated, 403 (needsOnboarding) if no artist profile exists.
+ */
+export const requireAuth = async (
   req: AuthRequest,
   res: Response,
   next: NextFunction,
-): void => {
-  const authHeader = req.headers["authorization"];
-  if (!authHeader || !authHeader.startsWith("Bearer ")) {
+): Promise<void> => {
+  const auth = getAuth(req);
+
+  if (!auth.userId) {
     res
       .status(401)
-      .json({ error: "Unauthorized", message: "Token de autenticação ausente" });
+      .json({ error: "Unauthorized", message: "Autenticação necessária" });
     return;
   }
 
-  const token = authHeader.slice(7);
-
   try {
-    const decoded = jwt.verify(token, JWT_SECRET, {
-      algorithms: ["HS256"],
-    }) as { id: string; email: string; role: string };
+    const [artist] = await db
+      .select()
+      .from(artistsTable)
+      .where(eq(artistsTable.clerkUserId, auth.userId))
+      .limit(1);
 
-    if (decoded.role !== "artist") {
-      res.status(403).json({ error: "Forbidden", message: "Acesso negado" });
+    if (!artist) {
+      res.status(403).json({
+        error: "No profile",
+        message: "Perfil de artista não encontrado. Complete o cadastro.",
+        needsOnboarding: true,
+      });
       return;
     }
 
-    req.artistId = decoded.id;
-    req.artistEmail = decoded.email;
+    req.artistId = artist.id;
+    req.artistEmail = artist.email;
+    req.clerkUserId = auth.userId;
     next();
   } catch (err) {
-    res
-      .status(401)
-      .json({ error: "Unauthorized", message: "Token inválido ou expirado" });
+    logger.error({ err }, "requireAuth DB lookup error");
+    res.status(500).json({ error: "Internal Server Error" });
   }
 };

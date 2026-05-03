@@ -1,9 +1,9 @@
-import { useAuth } from "@/lib/auth-context";
+import { useClerk, useUser } from "@clerk/react";
 import { Link, useLocation } from "wouter";
 import { LayoutDashboard, ListOrdered, Video, User, Star, LogOut, Menu } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
-import { useGetMe, getGetMeQueryKey, useLogout } from "@workspace/api-client-react";
+import { useGetMe, getGetMeQueryKey } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 
@@ -17,8 +17,8 @@ const navItems = [
 
 export function Layout({ children }: { children: React.ReactNode }) {
   const [location] = useLocation();
-  const { logout } = useAuth();
-  const logoutMutation = useLogout();
+  const { signOut } = useClerk();
+  const { user } = useUser();
   const queryClient = useQueryClient();
 
   const { data: artist } = useGetMe({
@@ -29,15 +29,12 @@ export function Layout({ children }: { children: React.ReactNode }) {
   });
 
   const handleLogout = async () => {
-    try {
-      await logoutMutation.mutateAsync();
-    } catch (e) {
-      console.error(e);
-    } finally {
-      logout();
-      queryClient.clear();
-    }
+    queryClient.clear();
+    await signOut();
   };
+
+  const displayName = artist?.name ?? user?.fullName ?? "";
+  const displayEmail = artist?.email ?? user?.primaryEmailAddress?.emailAddress ?? "";
 
   const NavLinks = () => (
     <>
@@ -77,16 +74,16 @@ export function Layout({ children }: { children: React.ReactNode }) {
 
       {/* Footer */}
       <div className="mt-auto px-3 pt-4 border-t border-sidebar-border">
-        {artist && (
+        {displayName && (
           <div className="flex items-center gap-3 px-2 py-3 mb-2">
             <Avatar className="h-8 w-8 rounded-full border border-border flex-shrink-0">
               <AvatarFallback className="bg-muted text-foreground text-xs font-semibold rounded-full">
-                {artist.name.charAt(0).toUpperCase()}
+                {displayName.charAt(0).toUpperCase()}
               </AvatarFallback>
             </Avatar>
             <div className="overflow-hidden flex-1 min-w-0">
-              <p className="text-sm font-semibold truncate text-foreground">{artist.name}</p>
-              <p className="text-xs text-muted-foreground truncate">{artist.email}</p>
+              <p className="text-sm font-semibold truncate text-foreground">{displayName}</p>
+              <p className="text-xs text-muted-foreground truncate">{displayEmail}</p>
             </div>
           </div>
         )}
@@ -136,9 +133,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
       {/* Main content */}
       <div className="flex-1 flex flex-col md:pl-64 h-full overflow-hidden">
         <main className="flex-1 overflow-y-auto p-6 md:p-10">
-          <div className="max-w-6xl mx-auto">
-            {children}
-          </div>
+          <div className="max-w-6xl mx-auto">{children}</div>
         </main>
       </div>
     </div>

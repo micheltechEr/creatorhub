@@ -4,8 +4,20 @@ import { artistsTable } from "@workspace/db";
 import { eq, and, gte, lte, sql } from "drizzle-orm";
 import { requireAuth, AuthRequest } from "../middlewares/auth";
 import { UpdateMeBody, ToggleAvailabilityBody } from "@workspace/api-zod";
+import { getAuth } from "@clerk/express";
+import { z } from "zod";
 
 const router = Router();
+
+const OnboardBody = z.object({
+  name: z.string().min(2),
+  email: z.string().email(),
+  categories: z.array(z.string()).min(1),
+  tags: z.array(z.string()).optional(),
+  basePrice: z.number().positive(),
+  deliveryDays: z.number().int().min(1).max(180),
+  bio: z.string().optional(),
+});
 
 const formatArtist = (a: typeof artistsTable.$inferSelect) => ({
   id: a.id,
@@ -22,6 +34,71 @@ const formatArtist = (a: typeof artistsTable.$inferSelect) => ({
   createdAt: a.createdAt,
 });
 
+// ── POST /artists/onboard — create artist profile for a new Clerk user ────────
+router.post("/artists/onboard", async (req, res) => {
+  const auth = getAuth(req);
+  if (!auth.userId) {
+    res.status(401).json({ error: "Unauthorized", message: "Autenticação necessária" });
+    return;
+  }
+
+  // If profile already exists, return it (idempotent)
+  const [existing] = await db
+    .select()
+    .from(artistsTable)
+    .where(eq(artistsTable.clerkUserId, auth.userId))
+    .limit(1);
+
+  if (existing) {
+    res.json(formatArtist(existing));
+    return;
+  }
+
+  const parse = OnboardBody.safeParse(req.body);
+  if (!parse.success) {
+    res.status(400).json({ error: "Validation error", message: parse.error.message });
+    return;
+  }
+
+  const { name, email, categories, tags, basePrice, deliveryDays, bio } = parse.data;
+
+  // Check if this email is already taken by another user
+  const [emailTaken] = await db
+    .select({ id: artistsTable.id })
+    .from(artistsTable)
+    .where(eq(artistsTable.email, email))
+    .limit(1);
+
+  if (emailTaken) {
+    // Link the existing account to this Clerk user instead
+    const [linked] = await db
+      .update(artistsTable)
+      .set({ clerkUserId: auth.userId, updatedAt: new Date() })
+      .where(eq(artistsTable.email, email))
+      .returning();
+    res.json(formatArtist(linked));
+    return;
+  }
+
+  const [artist] = await db
+    .insert(artistsTable)
+    .values({
+      name,
+      email,
+      clerkUserId: auth.userId,
+      categories,
+      tags: tags ?? [],
+      basePrice: String(basePrice),
+      deliveryDays,
+      availability: true,
+      bio: bio ?? null,
+    })
+    .returning();
+
+  res.status(201).json(formatArtist(artist));
+});
+
+// ── GET /artists/me ───────────────────────────────────────────────────────────
 router.get("/artists/me", requireAuth, async (req: AuthRequest, res) => {
   const [artist] = await db
     .select()
@@ -37,6 +114,7 @@ router.get("/artists/me", requireAuth, async (req: AuthRequest, res) => {
   res.json(formatArtist(artist));
 });
 
+// ── PUT /artists/me ───────────────────────────────────────────────────────────
 router.put("/artists/me", requireAuth, async (req: AuthRequest, res) => {
   const parse = UpdateMeBody.safeParse(req.body);
   if (!parse.success) {
@@ -63,6 +141,7 @@ router.put("/artists/me", requireAuth, async (req: AuthRequest, res) => {
   res.json(formatArtist(artist));
 });
 
+// ── PATCH /artists/me/availability ────────────────────────────────────────────
 router.patch("/artists/me/availability", requireAuth, async (req: AuthRequest, res) => {
   const parse = ToggleAvailabilityBody.safeParse(req.body);
   if (!parse.success) {
@@ -79,20 +158,31 @@ router.patch("/artists/me/availability", requireAuth, async (req: AuthRequest, r
   res.json(formatArtist(artist));
 });
 
+// ── GET /artists — public listing ─────────────────────────────────────────────
 router.get("/artists", async (req, res) => {
-  const { category, available, minPrice, maxPrice, limit = "20", offset = "0" } = req.query as Record<string, string>;
+  const { category, available, minPrice, maxPrice, limit = "20", offset = "0" } =
+    req.query as Record<string, string>;
 
   const conditions = [];
   if (category) conditions.push(sql`${category} = ANY(${artistsTable.categories})`);
-  if (available !== undefined) conditions.push(eq(artistsTable.availability, available === "true"));
+  if (available !== undefined)
+    conditions.push(eq(artistsTable.availability, available === "true"));
   if (minPrice) conditions.push(gte(artistsTable.basePrice, minPrice));
   if (maxPrice) conditions.push(lte(artistsTable.basePrice, maxPrice));
 
   const whereClause = conditions.length > 0 ? and(...conditions) : undefined;
 
   const [artists, countResult] = await Promise.all([
-    db.select().from(artistsTable).where(whereClause).limit(Number(limit)).offset(Number(offset)),
-    db.select({ count: sql<number>`count(*)` }).from(artistsTable).where(whereClause),
+    db
+      .select()
+      .from(artistsTable)
+      .where(whereClause)
+      .limit(Math.min(Number(limit), 100))
+      .offset(Math.max(Number(offset), 0)),
+    db
+      .select({ count: sql<number>`count(*)` })
+      .from(artistsTable)
+      .where(whereClause),
   ]);
 
   res.json({
@@ -101,6 +191,7 @@ router.get("/artists", async (req, res) => {
   });
 });
 
+// ── GET /artists/:id — public profile ─────────────────────────────────────────
 router.get("/artists/:id", async (req, res) => {
   const [artist] = await db
     .select()

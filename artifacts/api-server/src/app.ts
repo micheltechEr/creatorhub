@@ -4,14 +4,24 @@ import helmet from "helmet";
 import path from "path";
 import { existsSync } from "fs";
 import pinoHttp from "pino-http";
+import { clerkMiddleware } from "@clerk/express";
+import { publishableKeyFromHost } from "@clerk/shared/keys";
 import router from "./routes";
 import { logger } from "./lib/logger";
 import { globalLimiter } from "./lib/rate-limiters";
+import {
+  CLERK_PROXY_PATH,
+  clerkProxyMiddleware,
+  getClerkProxyHost,
+} from "./middlewares/clerkProxyMiddleware";
 
 const app: Express = express();
 
 // ── Trust proxy (Replit / nginx sits in front) ───────────────────────────────
 app.set("trust proxy", 1);
+
+// ── Clerk proxy — MUST be before body parsers (streams raw bytes) ─────────────
+app.use(CLERK_PROXY_PATH, clerkProxyMiddleware());
 
 // ── Security headers (OWASP A05) ─────────────────────────────────────────────
 app.use(
@@ -21,8 +31,8 @@ app.use(
         defaultSrc: ["'self'"],
         scriptSrc: ["'self'"],
         styleSrc: ["'self'", "'unsafe-inline'"],
-        imgSrc: ["'self'", "data:", "blob:"],
-        connectSrc: ["'self'"],
+        imgSrc: ["'self'", "data:", "blob:", "https:"],
+        connectSrc: ["'self'", "https://*.clerk.accounts.dev", "https://clerk.com"],
         frameSrc: ["'none'"],
         objectSrc: ["'none'"],
       },
@@ -31,7 +41,7 @@ app.use(
   }),
 );
 
-// ── CORS — restrict to known origins (OWASP A05) ─────────────────────────────
+// ── CORS (OWASP A05) ─────────────────────────────────────────────────────────
 const rawOrigins = process.env.ALLOWED_ORIGINS ?? "";
 const ALLOWED_ORIGINS: string[] = rawOrigins
   ? rawOrigins.split(",").map((o) => o.trim())
@@ -40,7 +50,6 @@ const ALLOWED_ORIGINS: string[] = rawOrigins
 app.use(
   cors({
     origin: (origin, callback) => {
-      // Allow requests with no origin (server-to-server / curl in dev)
       if (!origin) return callback(null, true);
       if (ALLOWED_ORIGINS.some((o) => origin.startsWith(o))) {
         return callback(null, true);
@@ -53,7 +62,7 @@ app.use(
   }),
 );
 
-// ── Global rate limiter: 300 req / 15 min per IP (OWASP A04) ─────────────────
+// ── Global rate limiter (OWASP A04) ─────────────────────────────────────────
 app.use(globalLimiter);
 
 // ── Request logging ──────────────────────────────────────────────────────────
@@ -62,11 +71,7 @@ app.use(
     logger,
     serializers: {
       req(req) {
-        return {
-          id: req.id,
-          method: req.method,
-          url: req.url?.split("?")[0],
-        };
+        return { id: req.id, method: req.method, url: req.url?.split("?")[0] };
       },
       res(res) {
         return { statusCode: res.statusCode };
@@ -75,9 +80,19 @@ app.use(
   }),
 );
 
-// ── Body parsing with size limits (OWASP A05) ────────────────────────────────
+// ── Body parsing with size limits ─────────────────────────────────────────────
 app.use(express.json({ limit: "1mb" }));
 app.use(express.urlencoded({ extended: true, limit: "1mb" }));
+
+// ── Clerk middleware — verifies session tokens and sets auth context ───────────
+app.use(
+  clerkMiddleware((req) => ({
+    publishableKey: publishableKeyFromHost(
+      getClerkProxyHost(req) ?? "",
+      process.env.CLERK_PUBLISHABLE_KEY,
+    ),
+  })),
+);
 
 app.use("/api", router);
 

@@ -6,7 +6,8 @@ export const artistsTable = pgTable("artists", {
   id: uuid("id").primaryKey().defaultRandom(),
   name: text("name").notNull(),
   email: text("email").notNull().unique(),
-  hashedPassword: text("hashed_password").notNull(),
+  hashedPassword: text("hashed_password"), // nullable — social-login artists don't have passwords
+  clerkUserId: text("clerk_user_id").unique(), // Clerk user ID for OAuth/social users
   categories: text("categories").array().notNull().default([]),
   tags: text("tags").array().notNull().default([]),
   basePrice: decimal("base_price", { precision: 10, scale: 2 }).notNull(),
