@@ -1,4 +1,4 @@
-import { useAuth } from "@/lib/auth-context";
+import { useAuth, handleAuthRateLimit } from "@/lib/auth-context";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -39,7 +39,11 @@ export default function Login() {
       login(response.accessToken, response.refreshToken);
       toast.success("Bem-vindo ao CREATOR HUB");
       setLocation("/dashboard");
-    } catch {
+    } catch (err: unknown) {
+      if (handleAuthRateLimit(err, setLocation)) {
+        toast.error("Muitas tentativas. Acesso bloqueado temporariamente.");
+        return;
+      }
       toast.error("Credenciais inválidas. Tente novamente.");
     }
   };

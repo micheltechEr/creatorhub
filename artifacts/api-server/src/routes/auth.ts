@@ -6,52 +6,134 @@ import { db } from "@workspace/db";
 import { artistsTable, refreshTokensTable } from "@workspace/db";
 import { eq } from "drizzle-orm";
 import { RegisterBody, LoginBody, RefreshTokenBody } from "@workspace/api-zod";
+import { authLimiter } from "../lib/rate-limiters";
+import { logger } from "../lib/logger";
 
 const router = Router();
 
-const JWT_SECRET = process.env.JWT_SECRET || "dev-jwt-secret";
-const REFRESH_SECRET = process.env.REFRESH_SECRET || "dev-refresh-secret";
+// ── Secrets — must be set in production (OWASP A02 / A07) ───────────────────
+const JWT_SECRET = process.env.JWT_SECRET ?? "dev-jwt-secret";
+const REFRESH_SECRET = process.env.REFRESH_SECRET ?? "dev-refresh-secret";
 
+if (process.env.NODE_ENV === "production") {
+  if (!process.env.JWT_SECRET || !process.env.REFRESH_SECRET) {
+    throw new Error(
+      "JWT_SECRET and REFRESH_SECRET must be set in production.",
+    );
+  }
+}
+
+// ── In-memory brute-force tracker (OWASP A07) ────────────────────────────────
+// Stores failed login attempts per IP. Cleared after LOCKOUT_WINDOW.
+const LOCKOUT_WINDOW_MS = 15 * 60 * 1000; // 15 minutes
+const MAX_FAILED_ATTEMPTS = 5;
+
+interface AttemptRecord {
+  count: number;
+  firstAt: number;
+}
+
+const failedAttempts = new Map<string, AttemptRecord>();
+
+function getClientIp(req: import("express").Request): string {
+  return (
+    (req.headers["x-forwarded-for"] as string)?.split(",")[0]?.trim() ??
+    req.socket.remoteAddress ??
+    "unknown"
+  );
+}
+
+function recordFailedAttempt(ip: string): boolean {
+  const now = Date.now();
+  const rec = failedAttempts.get(ip);
+
+  if (!rec || now - rec.firstAt > LOCKOUT_WINDOW_MS) {
+    failedAttempts.set(ip, { count: 1, firstAt: now });
+    return false;
+  }
+
+  rec.count += 1;
+  return rec.count >= MAX_FAILED_ATTEMPTS;
+}
+
+function resetAttempts(ip: string): void {
+  failedAttempts.delete(ip);
+}
+
+function isLockedOut(ip: string): boolean {
+  const rec = failedAttempts.get(ip);
+  if (!rec) return false;
+  if (Date.now() - rec.firstAt > LOCKOUT_WINDOW_MS) {
+    failedAttempts.delete(ip);
+    return false;
+  }
+  return rec.count >= MAX_FAILED_ATTEMPTS;
+}
+
+// Periodically clean up expired records to avoid memory leaks
+setInterval(() => {
+  const now = Date.now();
+  for (const [ip, rec] of failedAttempts.entries()) {
+    if (now - rec.firstAt > LOCKOUT_WINDOW_MS) failedAttempts.delete(ip);
+  }
+}, 5 * 60 * 1000);
+
+// ── Token helpers ─────────────────────────────────────────────────────────────
 const generateTokens = (artistId: string, email: string) => {
-  const accessToken = jwt.sign({ id: artistId, email, role: "artist" }, JWT_SECRET, {
-    expiresIn: "30m",
-    algorithm: "HS256",
-  });
+  const accessToken = jwt.sign(
+    { id: artistId, email, role: "artist" },
+    JWT_SECRET,
+    { expiresIn: "30m", algorithm: "HS256" },
+  );
   const refreshToken = jwt.sign(
     { userId: artistId, type: "refresh" },
     REFRESH_SECRET,
-    { expiresIn: "7d", algorithm: "HS256" }
+    { expiresIn: "7d", algorithm: "HS256" },
   );
   return { accessToken, refreshToken };
 };
 
-router.post("/auth/register", async (req, res) => {
+// ── POST /auth/register ───────────────────────────────────────────────────────
+router.post("/auth/register", authLimiter, async (req, res) => {
   const parse = RegisterBody.safeParse(req.body);
   if (!parse.success) {
-    res.status(400).json({ error: "Validation error", message: parse.error.message });
+    res
+      .status(400)
+      .json({ error: "Validation error", message: parse.error.message });
     return;
   }
 
-  const { name, email, password, categories, tags, basePrice, deliveryDays } = parse.data;
+  const { name, email, password, categories, tags, basePrice, deliveryDays } =
+    parse.data;
 
-  const existing = await db.select().from(artistsTable).where(eq(artistsTable.email, email)).limit(1);
+  const existing = await db
+    .select({ id: artistsTable.id })
+    .from(artistsTable)
+    .where(eq(artistsTable.email, email))
+    .limit(1);
+
   if (existing.length > 0) {
-    res.status(400).json({ error: "Email already registered", message: "Email já cadastrado" });
+    res
+      .status(400)
+      .json({ error: "Email already registered", message: "Email já cadastrado" });
     return;
   }
 
-  const hashedPassword = await bcrypt.hash(password, 10);
+  const hashedPassword = await bcrypt.hash(password, 12);
 
-  const [artist] = await db.insert(artistsTable).values({
-    name,
-    email,
-    hashedPassword,
-    categories,
-    tags: tags ?? [],
-    basePrice: String(basePrice),
-    deliveryDays,
-    availability: true,
-  }).returning();
+  const [artist] = await db
+    .insert(artistsTable)
+    .values({
+      name,
+      email,
+      hashedPassword,
+      categories,
+      tags: tags ?? [],
+      basePrice: String(basePrice),
+      deliveryDays,
+      availability: true,
+    })
+    .returning();
 
   const { accessToken, refreshToken } = generateTokens(artist.id, artist.email);
 
@@ -70,26 +152,64 @@ router.post("/auth/register", async (req, res) => {
   });
 });
 
-router.post("/auth/login", async (req, res) => {
+// ── POST /auth/login ──────────────────────────────────────────────────────────
+router.post("/auth/login", authLimiter, async (req, res) => {
+  const ip = getClientIp(req);
+
+  // Check if this IP is already locked out
+  if (isLockedOut(ip)) {
+    logger.warn({ ip }, "Brute-force lockout triggered");
+    res.status(429).json({
+      error: "Too many requests",
+      message: "Muitas tentativas de login. Acesso bloqueado temporariamente.",
+      redirectTo: "/",
+    });
+    return;
+  }
+
   const parse = LoginBody.safeParse(req.body);
   if (!parse.success) {
-    res.status(400).json({ error: "Validation error", message: parse.error.message });
+    res
+      .status(400)
+      .json({ error: "Validation error", message: parse.error.message });
     return;
   }
 
   const { email, password } = parse.data;
 
-  const [artist] = await db.select().from(artistsTable).where(eq(artistsTable.email, email)).limit(1);
-  if (!artist) {
-    res.status(401).json({ error: "Unauthorized", message: "Email ou senha incorretos" });
+  const [artist] = await db
+    .select()
+    .from(artistsTable)
+    .where(eq(artistsTable.email, email))
+    .limit(1);
+
+  // Use constant-time comparison to prevent timing attacks
+  const dummyHash =
+    "$2a$12$invalidhashfortimingprotectionxxxxxxxxxxxxxxxxxxxxxxxx";
+  const match = artist
+    ? await bcrypt.compare(password, artist.hashedPassword)
+    : await bcrypt.compare(password, dummyHash).then(() => false);
+
+  if (!artist || !match) {
+    const locked = recordFailedAttempt(ip);
+    logger.warn({ ip, email, locked }, "Failed login attempt");
+
+    if (locked) {
+      res.status(429).json({
+        error: "Too many requests",
+        message: "Muitas tentativas de login. Acesso bloqueado temporariamente.",
+        redirectTo: "/",
+      });
+      return;
+    }
+
+    res
+      .status(401)
+      .json({ error: "Unauthorized", message: "Email ou senha incorretos" });
     return;
   }
 
-  const match = await bcrypt.compare(password, artist.hashedPassword);
-  if (!match) {
-    res.status(401).json({ error: "Unauthorized", message: "Email ou senha incorretos" });
-    return;
-  }
+  resetAttempts(ip);
 
   const { accessToken, refreshToken } = generateTokens(artist.id, artist.email);
 
@@ -108,19 +228,27 @@ router.post("/auth/login", async (req, res) => {
   });
 });
 
-router.post("/auth/refresh", async (req, res) => {
+// ── POST /auth/refresh ────────────────────────────────────────────────────────
+router.post("/auth/refresh", authLimiter, async (req, res) => {
   const parse = RefreshTokenBody.safeParse(req.body);
   if (!parse.success) {
-    res.status(400).json({ error: "Validation error", message: parse.error.message });
+    res
+      .status(400)
+      .json({ error: "Validation error", message: parse.error.message });
     return;
   }
 
   const { refreshToken } = parse.data;
 
   try {
-    const decoded = jwt.verify(refreshToken, REFRESH_SECRET) as { userId: string; type: string };
+    const decoded = jwt.verify(refreshToken, REFRESH_SECRET) as {
+      userId: string;
+      type: string;
+    };
     if (decoded.type !== "refresh") {
-      res.status(401).json({ error: "Unauthorized", message: "Token tipo inválido" });
+      res
+        .status(401)
+        .json({ error: "Unauthorized", message: "Token tipo inválido" });
       return;
     }
 
@@ -130,8 +258,10 @@ router.post("/auth/refresh", async (req, res) => {
       .where(eq(refreshTokensTable.token, refreshToken))
       .limit(1);
 
-    if (!stored || stored.isRevoked) {
-      res.status(401).json({ error: "Unauthorized", message: "Refresh token revogado" });
+    if (!stored || stored.isRevoked || stored.expiresAt < new Date()) {
+      res
+        .status(401)
+        .json({ error: "Unauthorized", message: "Refresh token revogado ou expirado" });
       return;
     }
 
@@ -142,34 +272,62 @@ router.post("/auth/refresh", async (req, res) => {
       .limit(1);
 
     if (!artist) {
-      res.status(401).json({ error: "Unauthorized", message: "Artista não encontrado" });
+      res
+        .status(401)
+        .json({ error: "Unauthorized", message: "Artista não encontrado" });
       return;
     }
 
-    const accessToken = jwt.sign(
+    // Rotate refresh token (OWASP A07)
+    await db
+      .update(refreshTokensTable)
+      .set({ isRevoked: true })
+      .where(eq(refreshTokensTable.token, refreshToken));
+
+    const newAccessToken = jwt.sign(
       { id: artist.id, email: artist.email, role: "artist" },
       JWT_SECRET,
-      { expiresIn: "30m", algorithm: "HS256" }
+      { expiresIn: "30m", algorithm: "HS256" },
+    );
+    const newRefreshToken = jwt.sign(
+      { userId: artist.id, type: "refresh" },
+      REFRESH_SECRET,
+      { expiresIn: "7d", algorithm: "HS256" },
     );
 
-    res.json({ accessToken, expiresIn: 1800 });
+    const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
+    await db.insert(refreshTokensTable).values({
+      token: newRefreshToken,
+      artistId: artist.id,
+      expiresAt,
+    });
+
+    res.json({
+      accessToken: newAccessToken,
+      refreshToken: newRefreshToken,
+      expiresIn: 1800,
+    });
   } catch {
-    res.status(401).json({ error: "Unauthorized", message: "Refresh token inválido" });
+    res
+      .status(401)
+      .json({ error: "Unauthorized", message: "Refresh token inválido" });
   }
 });
 
+// ── POST /auth/logout ─────────────────────────────────────────────────────────
 router.post("/auth/logout", async (req, res) => {
-  const authHeader = req.headers["authorization"];
-  if (authHeader?.startsWith("Bearer ")) {
-    const token = authHeader.slice(7);
+  const body = req.body as { refreshToken?: string };
+  if (body.refreshToken) {
     try {
       await db
         .update(refreshTokensTable)
         .set({ isRevoked: true })
-        .where(eq(refreshTokensTable.token, token));
-    } catch { /* ignore */ }
+        .where(eq(refreshTokensTable.token, body.refreshToken));
+    } catch {
+      /* ignore */
+    }
   }
-  res.json({ message: "Logged out successfully" });
+  res.json({ message: "Sessão encerrada com sucesso" });
 });
 
 export default router;

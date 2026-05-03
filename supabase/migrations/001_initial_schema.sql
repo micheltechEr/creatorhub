@@ -11,19 +11,20 @@ CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 -- ARTISTS
 -- ============================================================
 CREATE TABLE IF NOT EXISTS artists (
-  id            UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  name          TEXT NOT NULL,
-  email         TEXT NOT NULL UNIQUE,
+  id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  name            TEXT NOT NULL,
+  email           TEXT NOT NULL UNIQUE,
   hashed_password TEXT NOT NULL,
-  categories    TEXT[] NOT NULL DEFAULT '{}',
-  tags          TEXT[] NOT NULL DEFAULT '{}',
-  base_price    NUMERIC(10, 2) NOT NULL,
-  delivery_days INTEGER NOT NULL,
-  availability  BOOLEAN NOT NULL DEFAULT TRUE,
-  rating        NUMERIC(3, 2) NOT NULL DEFAULT 0,
-  total_reviews INTEGER NOT NULL DEFAULT 0,
-  created_at    TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-  updated_at    TIMESTAMPTZ NOT NULL DEFAULT NOW()
+  categories      TEXT[]         NOT NULL DEFAULT '{}',
+  tags            TEXT[]         NOT NULL DEFAULT '{}',
+  base_price      NUMERIC(10, 2) NOT NULL,
+  delivery_days   INTEGER        NOT NULL,
+  availability    BOOLEAN        NOT NULL DEFAULT TRUE,
+  rating          NUMERIC(3, 2)  NOT NULL DEFAULT 0,
+  total_reviews   INTEGER        NOT NULL DEFAULT 0,
+  bio             TEXT,
+  created_at      TIMESTAMPTZ    NOT NULL DEFAULT NOW(),
+  updated_at      TIMESTAMPTZ    NOT NULL DEFAULT NOW()
 );
 
 -- ============================================================
@@ -36,12 +37,12 @@ CREATE TABLE IF NOT EXISTS orders (
   title                   TEXT NOT NULL,
   description             TEXT,
   occasion                TEXT,
-  names                   TEXT[] NOT NULL DEFAULT '{}',
-  reference_links         TEXT[] NOT NULL DEFAULT '{}',
-  deadline                TIMESTAMPTZ NOT NULL,
+  names                   TEXT[]         NOT NULL DEFAULT '{}',
+  reference_links         TEXT[]         NOT NULL DEFAULT '{}',
+  deadline                TIMESTAMPTZ    NOT NULL,
   additional_instructions TEXT,
   base_price              NUMERIC(10, 2) NOT NULL,
-  status                  TEXT NOT NULL DEFAULT 'PROPOSED'
+  status                  TEXT           NOT NULL DEFAULT 'PROPOSED'
     CHECK (status IN ('PROPOSED','PAYMENT_PENDING','PAID','IN_PROGRESS','DELIVERED','CANCELLED')),
   client_name             TEXT NOT NULL,
   client_email            TEXT NOT NULL,
@@ -61,10 +62,10 @@ CREATE TABLE IF NOT EXISTS payments (
   id                  UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   order_id            UUID NOT NULL REFERENCES orders(id) ON DELETE CASCADE,
   amount              BIGINT NOT NULL,
-  currency            TEXT NOT NULL DEFAULT 'BRL',
-  status              TEXT NOT NULL DEFAULT 'PENDING',
-  provider            TEXT NOT NULL,
-  transaction_id      TEXT NOT NULL UNIQUE,
+  currency            TEXT   NOT NULL DEFAULT 'BRL',
+  status              TEXT   NOT NULL DEFAULT 'PENDING',
+  provider            TEXT   NOT NULL,
+  transaction_id      TEXT   NOT NULL UNIQUE,
 
   -- Asaas-specific fields
   billing_type        TEXT,
@@ -88,10 +89,10 @@ CREATE INDEX IF NOT EXISTS idx_payments_order_id ON payments(order_id);
 CREATE TABLE IF NOT EXISTS media (
   id          UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   artist_id   UUID NOT NULL REFERENCES artists(id) ON DELETE CASCADE,
-  file_name   TEXT NOT NULL,
+  file_name   TEXT   NOT NULL,
   file_size   BIGINT NOT NULL,
-  file_url    TEXT NOT NULL,
-  mime_type   TEXT NOT NULL,
+  file_url    TEXT   NOT NULL,
+  mime_type   TEXT   NOT NULL,
   uploaded_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
@@ -102,15 +103,15 @@ CREATE INDEX IF NOT EXISTS idx_media_artist_id ON media(artist_id);
 -- ============================================================
 CREATE TABLE IF NOT EXISTS reviews (
   id         UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  order_id   UUID NOT NULL REFERENCES orders(id) ON DELETE CASCADE,
-  artist_id  UUID NOT NULL REFERENCES artists(id) ON DELETE CASCADE,
+  order_id   UUID NOT NULL REFERENCES orders(id)   ON DELETE CASCADE,
+  artist_id  UUID NOT NULL REFERENCES artists(id)  ON DELETE CASCADE,
   client_id  UUID NOT NULL,
   rating     INTEGER NOT NULL CHECK (rating BETWEEN 1 AND 5),
   comment    TEXT,
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
-CREATE INDEX IF NOT EXISTS idx_reviews_artist_id ON reviews(artist_id);
+CREATE INDEX IF NOT EXISTS idx_reviews_artist_id    ON reviews(artist_id);
 CREATE UNIQUE INDEX IF NOT EXISTS idx_reviews_order_unique ON reviews(order_id);
 
 -- ============================================================
@@ -120,7 +121,7 @@ CREATE TABLE IF NOT EXISTS refresh_tokens (
   id         UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   token      TEXT NOT NULL UNIQUE,
   artist_id  UUID NOT NULL REFERENCES artists(id) ON DELETE CASCADE,
-  is_revoked BOOLEAN NOT NULL DEFAULT FALSE,
+  is_revoked BOOLEAN     NOT NULL DEFAULT FALSE,
   expires_at TIMESTAMPTZ NOT NULL,
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
@@ -183,10 +184,19 @@ CREATE TRIGGER trg_sync_artist_rating
   FOR EACH ROW EXECUTE FUNCTION sync_artist_rating();
 
 -- ============================================================
--- ROW LEVEL SECURITY (RLS) — enable but keep permissive for
--- server-side access (the API server uses the service_role key
--- which bypasses RLS automatically).
+-- ROW LEVEL SECURITY (RLS)
+-- OWASP A01 — Broken Access Control
+--
+-- Strategy:
+--   • The API server uses the Supabase service_role key which
+--     BYPASSES RLS automatically — full trust at the API layer.
+--   • All direct client (anon) access is DENIED by default.
+--   • Only genuinely public data (artist profiles, public media,
+--     reviews) has explicit SELECT grants for the anon role.
+--   • Sensitive tables (payments, refresh_tokens) have NO anon
+--     policies — any direct client attempt is rejected.
 -- ============================================================
+
 ALTER TABLE artists        ENABLE ROW LEVEL SECURITY;
 ALTER TABLE orders         ENABLE ROW LEVEL SECURITY;
 ALTER TABLE payments       ENABLE ROW LEVEL SECURITY;
@@ -194,7 +204,87 @@ ALTER TABLE media          ENABLE ROW LEVEL SECURITY;
 ALTER TABLE reviews        ENABLE ROW LEVEL SECURITY;
 ALTER TABLE refresh_tokens ENABLE ROW LEVEL SECURITY;
 
--- Allow full access from service_role (bypasses RLS by default in Supabase)
--- Allow read-only anon access to public artist profiles
-CREATE POLICY IF NOT EXISTS "anon_read_artists"  ON artists  FOR SELECT USING (TRUE);
-CREATE POLICY IF NOT EXISTS "anon_read_reviews"  ON reviews  FOR SELECT USING (TRUE);
+-- ── Public read — artist profiles (marketplace catalog) ──────────────────────
+CREATE POLICY IF NOT EXISTS "anon_select_artists"
+  ON artists FOR SELECT
+  TO anon
+  USING (TRUE);
+
+-- Block all anon writes to artists
+CREATE POLICY IF NOT EXISTS "deny_anon_insert_artists"
+  ON artists FOR INSERT
+  TO anon
+  WITH CHECK (FALSE);
+
+CREATE POLICY IF NOT EXISTS "deny_anon_update_artists"
+  ON artists FOR UPDATE
+  TO anon
+  USING (FALSE);
+
+CREATE POLICY IF NOT EXISTS "deny_anon_delete_artists"
+  ON artists FOR DELETE
+  TO anon
+  USING (FALSE);
+
+-- ── Public read — portfolio media ─────────────────────────────────────────────
+CREATE POLICY IF NOT EXISTS "anon_select_media"
+  ON media FOR SELECT
+  TO anon
+  USING (TRUE);
+
+CREATE POLICY IF NOT EXISTS "deny_anon_insert_media"
+  ON media FOR INSERT
+  TO anon
+  WITH CHECK (FALSE);
+
+CREATE POLICY IF NOT EXISTS "deny_anon_update_media"
+  ON media FOR UPDATE
+  TO anon
+  USING (FALSE);
+
+CREATE POLICY IF NOT EXISTS "deny_anon_delete_media"
+  ON media FOR DELETE
+  TO anon
+  USING (FALSE);
+
+-- ── Public read — reviews ─────────────────────────────────────────────────────
+CREATE POLICY IF NOT EXISTS "anon_select_reviews"
+  ON reviews FOR SELECT
+  TO anon
+  USING (TRUE);
+
+CREATE POLICY IF NOT EXISTS "deny_anon_insert_reviews"
+  ON reviews FOR INSERT
+  TO anon
+  WITH CHECK (FALSE);
+
+CREATE POLICY IF NOT EXISTS "deny_anon_update_reviews"
+  ON reviews FOR UPDATE
+  TO anon
+  USING (FALSE);
+
+CREATE POLICY IF NOT EXISTS "deny_anon_delete_reviews"
+  ON reviews FOR DELETE
+  TO anon
+  USING (FALSE);
+
+-- ── Orders — fully deny for anon (sensitive client data) ─────────────────────
+CREATE POLICY IF NOT EXISTS "deny_anon_all_orders"
+  ON orders FOR ALL
+  TO anon
+  USING (FALSE)
+  WITH CHECK (FALSE);
+
+-- ── Payments — fully deny for anon (financial data) ──────────────────────────
+CREATE POLICY IF NOT EXISTS "deny_anon_all_payments"
+  ON payments FOR ALL
+  TO anon
+  USING (FALSE)
+  WITH CHECK (FALSE);
+
+-- ── Refresh tokens — fully deny for anon (auth tokens) ───────────────────────
+CREATE POLICY IF NOT EXISTS "deny_anon_all_refresh_tokens"
+  ON refresh_tokens FOR ALL
+  TO anon
+  USING (FALSE)
+  WITH CHECK (FALSE);
