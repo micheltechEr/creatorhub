@@ -57,33 +57,59 @@ router.post("/users/bootstrap-from-clerk", async (req, res) => {
     return;
   }
 
-  const email = auth.sessionClaims?.email || auth.sessionClaims?.primary_email_address || null;
-  const name =
+  const email = String(
+    auth.sessionClaims?.email ||
+    auth.sessionClaims?.primary_email_address ||
+    ""
+  );
+  const name = String(
     auth.sessionClaims?.fullName ||
     auth.sessionClaims?.first_name ||
     auth.sessionClaims?.given_name ||
-    "Usuário";
+    "Usuário"
+  );
 
-  const [existing] = await db
+  // Already linked by Clerk ID
+  const [byClerkId] = await db
     .select()
     .from(platformUsersTable)
     .where(eq(platformUsersTable.clerkUserId, auth.userId))
     .limit(1);
 
-  if (existing) {
-    res.json({ ok: true });
+  if (byClerkId) {
+    res.json({ ok: true, role: byClerkId.role });
     return;
   }
 
+  // Pre-seeded record (e.g. pending:email) — link real Clerk ID and preserve role
+  if (email) {
+    const [byEmail] = await db
+      .select()
+      .from(platformUsersTable)
+      .where(eq(platformUsersTable.email, email))
+      .limit(1);
+
+    if (byEmail) {
+      await db
+        .update(platformUsersTable)
+        .set({ clerkUserId: auth.userId, name, updatedAt: new Date() })
+        .where(eq(platformUsersTable.id, byEmail.id));
+
+      res.json({ ok: true, role: byEmail.role });
+      return;
+    }
+  }
+
+  // Brand new user — create as client
   await db.insert(platformUsersTable).values({
     clerkUserId: auth.userId,
-    email: String(email ?? ""),
-    name: String(name),
+    email,
+    name,
     role: "client",
     tenantId: null,
   });
 
-  res.status(201).json({ ok: true });
+  res.status(201).json({ ok: true, role: "client" });
 });
 
 // ── POST /users/bootstrap-admin — promote first user to superadmin ─────────────
