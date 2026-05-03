@@ -652,6 +652,10 @@ export default function Contracts() {
         {/* Delete confirm */}
         <Dialog open={!!deleteId} onOpenChange={() => setDeleteId(null)}>
           <DialogContent style={{ borderRadius: "2px" }}>
+            <DialogTitle className="sr-only">Remover contrato</DialogTitle>
+            <DialogDescription className="sr-only">
+              Essa ação não pode ser desfeita. O contrato será excluído permanentemente.
+            </DialogDescription>
             <DialogHeader>
               <DialogTitle className="font-serif">Remover contrato</DialogTitle>
               <DialogDescription>
