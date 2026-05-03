@@ -13,19 +13,22 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { formatCurrency } from "@/lib/format";
-import { X, Plus, Star, Pencil, Check } from "lucide-react";
+import { X, Star, Pencil, Check } from "lucide-react";
 import { toast } from "sonner";
-import { useForm } from "react-hook-form";
 
 const CATEGORIES = [
-  "Musica",
-  "Danca",
-  "Comedia",
-  "Motivacao",
-  "Aniversario",
-  "Casamento",
-  "Outro",
+  "Música", "Dança", "Comédia", "Motivação",
+  "Aniversário", "Casamento", "Outro",
 ];
+
+const cardStyle = {
+  borderRadius: "4px",
+  boxShadow: "0 2px 8px rgba(0,0,0,0.06)",
+};
+
+const inputStyle = {
+  borderRadius: "2px",
+};
 
 export default function Profile() {
   const queryClient = useQueryClient();
@@ -74,7 +77,9 @@ export default function Profile() {
     try {
       await toggleMutation.mutateAsync({ data: { availability: !artist?.availability } });
       queryClient.invalidateQueries({ queryKey: getGetMeQueryKey() });
-      toast.success(artist?.availability ? "Voce esta indisponivel agora" : "Voce esta disponivel agora");
+      toast.success(
+        artist?.availability ? "Você está indisponível agora" : "Você está disponível agora"
+      );
     } catch {
       toast.error("Erro ao atualizar disponibilidade");
     }
@@ -106,7 +111,7 @@ export default function Profile() {
   if (isLoading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <div className="animate-pulse text-muted-foreground">Carregando perfil...</div>
+        <div className="text-muted-foreground text-sm">Carregando perfil...</div>
       </div>
     );
   }
@@ -115,133 +120,181 @@ export default function Profile() {
 
   return (
     <div className="space-y-6 max-w-4xl">
+      {/* Header */}
       <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
         <div>
-          <h1 className="text-4xl font-bold tracking-tight">Meu Perfil</h1>
-          <p className="text-muted-foreground mt-1">Gerencie suas informacoes e configuracoes</p>
+          <h1 className="font-serif text-4xl font-semibold text-foreground">Meu Perfil</h1>
+          <p className="text-sm text-muted-foreground mt-1 uppercase tracking-[0.3px]">
+            Gerencie suas informações e configurações
+          </p>
         </div>
         {!editing ? (
-          <Button onClick={startEdit}>
-            <Pencil className="mr-2 h-4 w-4" /> Editar Perfil
+          <Button
+            onClick={startEdit}
+            className="bg-[#0A0A0A] text-white hover:bg-[#1F1F1F] text-sm font-semibold"
+            style={{ borderRadius: "2px" }}
+          >
+            <Pencil className="mr-2 h-3.5 w-3.5" /> Editar Perfil
           </Button>
         ) : (
           <div className="flex gap-2">
-            <Button variant="outline" onClick={() => setEditing(false)}>Cancelar</Button>
-            <Button onClick={handleSave} disabled={updateMutation.isPending}>
-              <Check className="mr-2 h-4 w-4" />
+            <Button
+              variant="outline"
+              onClick={() => setEditing(false)}
+              className="text-sm border-border"
+              style={{ borderRadius: "2px" }}
+            >
+              Cancelar
+            </Button>
+            <Button
+              onClick={handleSave}
+              disabled={updateMutation.isPending}
+              className="bg-[#0A0A0A] text-white hover:bg-[#1F1F1F] text-sm font-semibold"
+              style={{ borderRadius: "2px" }}
+            >
+              <Check className="mr-2 h-3.5 w-3.5" />
               {updateMutation.isPending ? "Salvando..." : "Salvar"}
             </Button>
           </div>
         )}
       </div>
 
-      {/* Stats bar */}
+      {/* Stats */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <Card className="rounded-2xl border-border/70 shadow-sm">
-          <CardContent className="p-4 text-center">
-            <div className="flex items-center justify-center gap-1 mb-1">
-              <Star className="h-4 w-4 text-yellow-400" />
-              <span className="text-2xl font-bold">{Number(artist.rating).toFixed(1)}</span>
-            </div>
-            <p className="text-xs text-muted-foreground">{artist.totalReviews} avaliacoes</p>
-          </CardContent>
-        </Card>
-        <Card className="rounded-2xl border-border/70 shadow-sm">
-          <CardContent className="p-4 text-center">
-            <p className="text-2xl font-bold">{formatCurrency(artist.basePrice)}</p>
-            <p className="text-xs text-muted-foreground">Preco base</p>
-          </CardContent>
-        </Card>
-        <Card className="rounded-2xl border-border/70 shadow-sm">
-          <CardContent className="p-4 text-center">
-            <p className="text-2xl font-bold">{artist.deliveryDays}d</p>
-            <p className="text-xs text-muted-foreground">Prazo de entrega</p>
-          </CardContent>
-        </Card>
+        {[
+          {
+            top: (
+              <div className="flex items-center justify-center gap-1.5">
+                <Star className="h-4 w-4 text-[#C9A961] fill-[#C9A961]" />
+                <span className="text-2xl font-bold">{Number(artist.rating).toFixed(1)}</span>
+              </div>
+            ),
+            sub: `${artist.totalReviews} avaliações`,
+          },
+          {
+            top: <p className="text-2xl font-bold">{formatCurrency(artist.basePrice)}</p>,
+            sub: "Preço base",
+          },
+          {
+            top: <p className="text-2xl font-bold">{artist.deliveryDays}d</p>,
+            sub: "Prazo de entrega",
+          },
+        ].map((stat, i) => (
+          <div
+            key={i}
+            className="bg-white border border-border p-4 text-center"
+            style={cardStyle}
+          >
+            <div className="mb-0.5">{stat.top}</div>
+            <p className="text-xs text-muted-foreground uppercase tracking-[0.3px]">{stat.sub}</p>
+          </div>
+        ))}
       </div>
 
       {/* Availability */}
-      <Card className="rounded-2xl border-border/70 shadow-sm">
-        <CardContent className="p-4 flex items-center justify-between">
-          <div>
-            <p className="font-semibold">Disponibilidade</p>
-            <p className="text-sm text-muted-foreground">
-              {artist.availability
-                ? "Voce esta recebendo novos pedidos"
-                : "Voce nao esta recebendo novos pedidos"}
-            </p>
-          </div>
-          <div className="flex items-center gap-3">
-            <span className={`text-sm font-medium ${artist.availability ? "text-green-600" : "text-muted-foreground"}`}>
-              {artist.availability ? "Disponivel" : "Indisponivel"}
-            </span>
-            <Switch
-              checked={artist.availability}
-              onCheckedChange={handleToggleAvailability}
-              disabled={toggleMutation.isPending}
-            />
-          </div>
-        </CardContent>
-      </Card>
+      <div
+        className="bg-white border border-border p-5 flex items-center justify-between"
+        style={cardStyle}
+      >
+        <div>
+          <p className="text-sm font-semibold text-foreground">Disponibilidade</p>
+          <p className="text-xs text-muted-foreground mt-0.5">
+            {artist.availability
+              ? "Você está recebendo novos pedidos"
+              : "Você não está recebendo novos pedidos"}
+          </p>
+        </div>
+        <div className="flex items-center gap-3">
+          <span
+            className={`text-xs font-semibold uppercase tracking-[0.5px] ${
+              artist.availability ? "text-[#2D8A45]" : "text-muted-foreground"
+            }`}
+          >
+            {artist.availability ? "Disponível" : "Indisponível"}
+          </span>
+          <Switch
+            checked={artist.availability}
+            onCheckedChange={handleToggleAvailability}
+            disabled={toggleMutation.isPending}
+          />
+        </div>
+      </div>
 
       {/* Profile info */}
-      <Card className="rounded-2xl border-border/70 shadow-sm">
-        <CardHeader>
-          <CardTitle>Informacoes do Perfil</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-6">
-          <div className="space-y-2">
-            <Label>Nome artistico</Label>
+      <div className="bg-white border border-border" style={cardStyle}>
+        <div className="px-6 py-4 border-b border-border">
+          <h3 className="text-sm font-semibold text-foreground">Informações do Perfil</h3>
+        </div>
+        <div className="p-6 space-y-6">
+          <div className="space-y-1.5">
+            <Label className="text-xs font-medium uppercase tracking-[0.5px] text-[#1F1F1F]">
+              Nome artístico
+            </Label>
             {editing ? (
-                  <Input
+              <Input
                 value={formData.name}
                 onChange={(e) => setFormData((p) => ({ ...p, name: e.target.value }))}
-                    className="rounded-xl"
+                className="h-12 text-sm border-border"
+                style={inputStyle}
               />
             ) : (
-              <p className="font-medium">{artist.name}</p>
+              <p className="text-sm font-medium text-foreground">{artist.name}</p>
             )}
           </div>
 
-          <div className="space-y-2">
-            <Label>Email</Label>
-            <p className="text-muted-foreground">{artist.email}</p>
+          <div className="space-y-1.5">
+            <Label className="text-xs font-medium uppercase tracking-[0.5px] text-[#1F1F1F]">
+              E-mail
+            </Label>
+            <p className="text-sm text-muted-foreground">{artist.email}</p>
           </div>
 
           <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label>Preco Base (BRL)</Label>
+            <div className="space-y-1.5">
+              <Label className="text-xs font-medium uppercase tracking-[0.5px] text-[#1F1F1F]">
+                Preço Base (BRL)
+              </Label>
               {editing ? (
                 <div className="relative">
-                  <span className="absolute left-3 top-2.5 text-muted-foreground text-sm">R$</span>
+                  <span className="absolute left-3 top-3 text-muted-foreground text-sm">R$</span>
                   <Input
                     type="number"
-                    className="pl-9 rounded-xl"
+                    className="h-12 pl-9 text-sm border-border"
+                    style={inputStyle}
                     value={formData.basePrice}
-                    onChange={(e) => setFormData((p) => ({ ...p, basePrice: Number(e.target.value) }))}
+                    onChange={(e) =>
+                      setFormData((p) => ({ ...p, basePrice: Number(e.target.value) }))
+                    }
                   />
                 </div>
               ) : (
-                <p className="font-medium">{formatCurrency(artist.basePrice)}</p>
+                <p className="text-sm font-medium text-foreground">{formatCurrency(artist.basePrice)}</p>
               )}
             </div>
-            <div className="space-y-2">
-              <Label>Prazo de Entrega (dias)</Label>
+            <div className="space-y-1.5">
+              <Label className="text-xs font-medium uppercase tracking-[0.5px] text-[#1F1F1F]">
+                Prazo de Entrega (dias)
+              </Label>
               {editing ? (
                 <Input
                   type="number"
+                  className="h-12 text-sm border-border"
+                  style={inputStyle}
                   value={formData.deliveryDays}
-                  className="rounded-xl"
-                  onChange={(e) => setFormData((p) => ({ ...p, deliveryDays: Number(e.target.value) }))}
+                  onChange={(e) =>
+                    setFormData((p) => ({ ...p, deliveryDays: Number(e.target.value) }))
+                  }
                 />
               ) : (
-                <p className="font-medium">{artist.deliveryDays} dias</p>
+                <p className="text-sm font-medium text-foreground">{artist.deliveryDays} dias</p>
               )}
             </div>
           </div>
 
-          <div className="space-y-2">
-            <Label>Categorias</Label>
+          <div className="space-y-1.5">
+            <Label className="text-xs font-medium uppercase tracking-[0.5px] text-[#1F1F1F]">
+              Categorias
+            </Label>
             {editing ? (
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
                 {CATEGORIES.map((cat) => (
@@ -249,11 +302,12 @@ export default function Profile() {
                     key={cat}
                     type="button"
                     onClick={() => toggleCategory(cat)}
-                    className={`p-2 rounded-md border text-sm font-medium transition-colors ${
+                    className={`p-2.5 border text-xs font-medium transition-colors duration-150 ${
                       formData.categories.includes(cat)
-                        ? "bg-primary text-primary-foreground border-primary"
-                        : "border-border hover:bg-accent/30"
+                        ? "bg-[#0A0A0A] text-white border-[#0A0A0A]"
+                        : "border-border text-muted-foreground hover:bg-[#F8F8F8] hover:text-foreground"
                     }`}
+                    style={{ borderRadius: "2px" }}
                   >
                     {cat}
                   </button>
@@ -262,31 +316,44 @@ export default function Profile() {
             ) : (
               <div className="flex flex-wrap gap-2">
                 {artist.categories.map((cat) => (
-                  <Badge key={cat} variant="secondary">{cat}</Badge>
+                  <span
+                    key={cat}
+                    className="inline-flex items-center px-3 py-1.5 text-xs font-medium bg-[#ECECEC] text-[#1F1F1F]"
+                    style={{ borderRadius: "2px" }}
+                  >
+                    {cat}
+                  </span>
                 ))}
               </div>
             )}
           </div>
 
-          <div className="space-y-2">
-            <Label>Tags</Label>
+          <div className="space-y-1.5">
+            <Label className="text-xs font-medium uppercase tracking-[0.5px] text-[#1F1F1F]">
+              Tags
+            </Label>
             {editing ? (
               <>
                 <Input
                   placeholder="Pressione Enter para adicionar tag..."
                   value={tagInput}
-                  className="rounded-xl"
+                  className="h-12 text-sm border-border"
+                  style={inputStyle}
                   onChange={(e) => setTagInput(e.target.value)}
                   onKeyDown={addTag}
                 />
                 <div className="flex flex-wrap gap-2 mt-2">
                   {formData.tags.map((tag) => (
-                    <Badge key={tag} variant="outline" className="px-2 py-1">
+                    <span
+                      key={tag}
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium bg-[#0A0A0A] text-white"
+                      style={{ borderRadius: "2px" }}
+                    >
                       {tag}
-                      <button type="button" onClick={() => removeTag(tag)} className="ml-2">
+                      <button type="button" onClick={() => removeTag(tag)} className="hover:opacity-70">
                         <X className="h-3 w-3" />
                       </button>
-                    </Badge>
+                    </span>
                   ))}
                 </div>
               </>
@@ -294,7 +361,13 @@ export default function Profile() {
               <div className="flex flex-wrap gap-2">
                 {artist.tags.length > 0 ? (
                   artist.tags.map((tag) => (
-                    <Badge key={tag} variant="outline">{tag}</Badge>
+                    <span
+                      key={tag}
+                      className="inline-flex items-center px-3 py-1.5 text-xs font-medium border border-border text-muted-foreground"
+                      style={{ borderRadius: "2px" }}
+                    >
+                      {tag}
+                    </span>
                   ))
                 ) : (
                   <span className="text-sm text-muted-foreground">Nenhuma tag adicionada</span>
@@ -302,8 +375,8 @@ export default function Profile() {
               </div>
             )}
           </div>
-        </CardContent>
-      </Card>
+        </div>
+      </div>
     </div>
   );
 }
