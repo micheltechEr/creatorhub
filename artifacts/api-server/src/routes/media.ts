@@ -5,7 +5,7 @@ import fs from "fs";
 import { db } from "@workspace/db";
 import { mediaTable } from "@workspace/db";
 import { eq, sql } from "drizzle-orm";
-import { requireAuth, AuthRequest } from "../middlewares/auth";
+import { requireAuth, AuthRequest, requireArtistRole } from "../middlewares/auth";
 
 const router = Router();
 
@@ -50,7 +50,7 @@ const upload = multer({
 });
 
 // ── GET /media — list my media ───────────────────────────────────────────────
-router.get("/media", requireAuth, async (req: AuthRequest, res) => {
+router.get("/media", requireAuth, requireArtistRole, async (req: AuthRequest, res) => {
   const [media, countResult] = await Promise.all([
     db
       .select()
@@ -81,6 +81,7 @@ router.get("/media", requireAuth, async (req: AuthRequest, res) => {
 router.post(
   "/media",
   requireAuth,
+  requireArtistRole,
   upload.single("file"),
   async (req: AuthRequest, res) => {
     const file = req.file;
@@ -117,7 +118,7 @@ router.post(
 );
 
 // ── DELETE /media/:id — delete my media (OWASP A01: ownership check) ─────────
-router.delete("/media/:id", requireAuth, async (req: AuthRequest, res) => {
+router.delete("/media/:id", requireAuth, requireArtistRole, async (req: AuthRequest, res) => {
   const [media] = await db
     .select()
     .from(mediaTable)

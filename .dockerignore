@@ -1,40 +1,52 @@
-# Dependencies — never copy these; the builder installs from scratch
+# ── Dependencies ─────────────────────────────────────────────────────────────
 node_modules
 **/node_modules
 
-# Build outputs — the builder creates fresh ones
+# ── Build outputs ────────────────────────────────────────────────────────────
 **/dist
 artifacts/artist-platform/dist
 artifacts/api-server/dist
 
-# Generated code — codegen runs inside the builder
+# ── Generated code (codegen runs inside the builder) ─────────────────────────
 lib/api-zod/src/generated
 lib/api-client-react/src/generated
 
-# Dev / editor artifacts
+# ── Dev / editor artifacts ───────────────────────────────────────────────────
 .git
 .gitignore
+.gitattributes
 **/.env
 **/.env.*
+!.env.example
 *.log
 
-# Replit specific
+# ── Replit specific ──────────────────────────────────────────────────────────
 .replit
+.replitignore
+replit.md
 replit.nix
 .upm
 .cache
 .local
 **/.local
+
+# ── Runtime / upload data ────────────────────────────────────────────────────
+uploads/
 attached_assets
 
-# OS artifacts
+# ── Non-essential files for build ────────────────────────────────────────────
+artifacts/mockup-sandbox
+supabase
+*.md
+render.yaml
+render-frontend.yaml
+.dockerignore
+
+# ── OS artifacts ─────────────────────────────────────────────────────────────
 .DS_Store
 Thumbs.db
 
-# Test & CI artifacts
+# ── Test & CI artifacts ─────────────────────────────────────────────────────
 coverage
 **/*.test.ts
 **/*.spec.ts
-
-# Uploads (runtime data — mount a volume instead)
-uploads/

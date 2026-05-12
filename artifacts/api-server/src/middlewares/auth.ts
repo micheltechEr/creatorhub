@@ -2,7 +2,7 @@ import { Request, Response, NextFunction } from "express";
 import { getAuth } from "@clerk/express";
 import { db } from "@workspace/db";
 import { platformUsersTable } from "@workspace/db";
-import { eq } from "drizzle-orm";
+import { eq, sql } from "drizzle-orm";
 import { logger } from "../lib/logger";
 
 export interface AuthRequest extends Request {
@@ -32,21 +32,11 @@ export const requireAuth = async (
     return;
   }
 
-  // Set RLS session variable for PostgreSQL policies (defense-in-depth)
-  try {
-    await db.execute(
-      `SET LOCAL app.clerk_user_id = '${auth.userId.replace(/'/g, "''")}'` as any,
-    );
-  } catch {
-    // Non-fatal: app-level checks are the primary isolation mechanism
-  }
-
   try {
     const [user] = await db
       .select()
       .from(platformUsersTable)
       .where(eq(platformUsersTable.clerkUserId, auth.userId))
-      .limit(1);
 
     if (!user) {
       res.status(403).json({
@@ -62,10 +52,20 @@ export const requireAuth = async (
     req.clerkUserId = auth.userId;
     req.isSuperAdmin = user.role === "superadmin";
 
-    // Backward compat: artistId = tenantId for artist/superadmin accessing tenant routes
+    // Backward compat: artistId = tenantId for artist/superadmin acting on tenant routes
     if (user.role === "artist" && user.tenantId) {
       req.artistId = user.tenantId;
       req.tenantId = user.tenantId;
+    }
+
+    // Set RLS session variable AFTER user is confirmed (defense-in-depth)
+    try {
+      
+      await db.execute(
+        sql`SET app.clerk_user_id = ${auth.userId}`
+      );
+      } catch {
+      // Non-fatal: app-level checks are the primary isolation mechanism
     }
 
     next();

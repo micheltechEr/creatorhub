@@ -138,19 +138,19 @@ export default function ArtistPublic() {
 
   if (artistLoading) {
     return (
-      <div className="min-h-screen bg-[#F8F8F8] flex items-center justify-center">
-        <div className="text-sm text-[#777]">Carregando...</div>
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="text-sm text-muted-foreground">Carregando...</div>
       </div>
     );
   }
 
   if (artistError || !artist) {
     return (
-      <div className="min-h-screen bg-[#F8F8F8] flex items-center justify-center">
+      <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="text-center">
-          <AlertCircle className="h-10 w-10 text-[#C9A961] mx-auto mb-3" />
-          <p className="text-sm font-medium text-[#0A0A0A]">Artista não encontrado</p>
-          <p className="text-xs text-[#777] mt-1">Verifique o link e tente novamente</p>
+          <AlertCircle className="h-10 w-10 text-secondary mx-auto mb-3" />
+          <p className="text-sm font-medium text-foreground">Artista não encontrado</p>
+          <p className="text-xs text-muted-foreground mt-1">Verifique o link e tente novamente</p>
         </div>
       </div>
     );
@@ -169,19 +169,19 @@ export default function ArtistPublic() {
     }`;
 
   return (
-    <div className="min-h-screen bg-[#F8F8F8]" style={{ fontFamily: "var(--font-sans)" }}>
+    <div className="min-h-screen bg-background" style={{ fontFamily: "var(--font-sans)" }}>
       <Toaster />
 
       {/* HERO / HEADER */}
-      <div className="bg-[#0A0A0A] text-white">
+      <div className="bg-foreground text-background">
         <div className="max-w-5xl mx-auto px-6 py-14">
           <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-8">
             <div>
               {/* Platform brand */}
-              <p className="text-xs text-[#C9A961] font-semibold uppercase tracking-[1px] mb-4">
+              <p className="text-xs text-secondary font-semibold uppercase tracking-[1px] mb-4">
                 CREATOR HUB
               </p>
-              <h1 className="font-serif text-5xl font-semibold text-white leading-tight mb-3">
+              <h1 className="font-serif text-5xl font-semibold text-background leading-tight mb-3">
                 {artist.name}
               </h1>
 
@@ -189,8 +189,8 @@ export default function ArtistPublic() {
               {totalReviews > 0 && (
                 <div className="flex items-center gap-2 mb-4">
                   <StarRating rating={avgRating} />
-                  <span className="text-sm text-[#C9A961] font-semibold">{Number(avgRating).toFixed(1)}</span>
-                  <span className="text-sm text-[#888]">({totalReviews} avaliações)</span>
+                  <span className="text-sm text-secondary font-semibold">{Number(avgRating).toFixed(1)}</span>
+                  <span className="text-sm text-muted-foreground">({totalReviews} avaliações)</span>
                 </div>
               )}
 
@@ -200,7 +200,7 @@ export default function ArtistPublic() {
                   {artist.categories.map((cat) => (
                     <span
                       key={cat}
-                      className="px-3 py-1 text-xs font-medium border border-[#C9A961]/40 text-[#C9A961] uppercase tracking-[0.5px]"
+                      className="px-3 py-1 text-xs font-medium border border-secondary/40 text-secondary uppercase tracking-[0.5px]"
                       style={{ borderRadius: "2px" }}
                     >
                       {cat}
@@ -211,37 +211,37 @@ export default function ArtistPublic() {
 
               {/* Bio */}
               {artist.bio && (
-                <p className="text-[#BBBBBB] text-sm leading-relaxed max-w-xl">{artist.bio}</p>
+                <p className="text-muted-foreground text-sm leading-relaxed max-w-xl">{artist.bio}</p>
               )}
             </div>
 
             {/* Pricing card */}
             <div
-              className="bg-white/5 border border-white/10 p-6 min-w-[220px]"
+              className="bg-background/5 border border-background/10 p-6 min-w-[220px]"
               style={{ borderRadius: "4px" }}
             >
               <div className="flex items-center gap-2 mb-1">
-                <DollarSign className="h-4 w-4 text-[#C9A961]" />
-                <span className="text-xs text-[#888] uppercase tracking-[0.5px]">A partir de</span>
+                <DollarSign className="h-4 w-4 text-secondary" />
+                <span className="text-xs text-muted-foreground uppercase tracking-[0.5px]">A partir de</span>
               </div>
-              <p className="font-serif text-4xl font-semibold text-white mb-3">
+              <p className="font-serif text-4xl font-semibold text-background mb-3">
                 {formatCurrency(artist.basePrice)}
               </p>
-              <div className="flex items-center gap-1.5 text-xs text-[#888]">
+              <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
                 <Clock className="h-3.5 w-3.5" />
                 <span>Entrega em {artist.deliveryDays} dia{artist.deliveryDays !== 1 ? "s" : ""}</span>
               </div>
 
               {/* Availability badge */}
-              <div className="mt-4 pt-4 border-t border-white/10">
+              <div className="mt-4 pt-4 border-t border-background/10">
                 {artist.availability ? (
-                  <div className="flex items-center gap-1.5 text-[#4CAF50] text-xs font-semibold">
-                    <div className="h-2 w-2 rounded-full bg-[#4CAF50]" />
+                  <div className="flex items-center gap-1.5 text-[#2D8A45] text-xs font-semibold">
+                    <div className="h-2 w-2 rounded-full bg-[#2D8A45]" />
                     Aceitando pedidos
                   </div>
                 ) : (
-                  <div className="flex items-center gap-1.5 text-[#888] text-xs font-semibold">
-                    <div className="h-2 w-2 rounded-full bg-[#888]" />
+                  <div className="flex items-center gap-1.5 text-muted-foreground text-xs font-semibold">
+                    <div className="h-2 w-2 rounded-full bg-muted-foreground" />
                     Indisponível no momento
                   </div>
                 )}
@@ -250,7 +250,7 @@ export default function ArtistPublic() {
               {artist.availability && (
                 <button
                   onClick={() => setActiveTab("order")}
-                  className="mt-4 w-full bg-[#C9A961] text-[#0A0A0A] text-sm font-semibold py-3 flex items-center justify-center gap-1.5 hover:bg-[#B89550] transition-colors"
+                  className="mt-4 w-full bg-secondary text-secondary-foreground text-sm font-semibold py-3 flex items-center justify-center gap-1.5 hover:opacity-90 transition-colors"
                   style={{ borderRadius: "2px" }}
                 >
                   Fazer Pedido <ChevronRight className="h-4 w-4" />
@@ -261,9 +261,9 @@ export default function ArtistPublic() {
 
           {/* Tags */}
           {artist.tags.length > 0 && (
-            <div className="flex flex-wrap gap-2 mt-6 pt-6 border-t border-white/10">
+            <div className="flex flex-wrap gap-2 mt-6 pt-6 border-t border-background/10">
               {artist.tags.map((tag) => (
-                <span key={tag} className="text-xs text-[#888] px-2 py-0.5 bg-white/5 border border-white/10" style={{ borderRadius: "2px" }}>
+                <span key={tag} className="text-xs text-muted-foreground px-2 py-0.5 bg-background/5 border border-background/10" style={{ borderRadius: "2px" }}>
                   #{tag}
                 </span>
               ))}
@@ -273,7 +273,7 @@ export default function ArtistPublic() {
       </div>
 
       {/* TABS */}
-      <div className="bg-white border-b border-[#E8E8E8] sticky top-0 z-10">
+      <div className="bg-card border-b border-border sticky top-0 z-10">
         <div className="max-w-5xl mx-auto px-6 flex gap-0">
           <button className={tabCls("portfolio")} onClick={() => setActiveTab("portfolio")}>
             Portfólio {media.length > 0 && `(${media.length})`}
@@ -295,18 +295,18 @@ export default function ArtistPublic() {
         {/* PORTFOLIO TAB */}
         {activeTab === "portfolio" && (
           <div>
-            <h2 className="font-serif text-2xl font-semibold text-[#0A0A0A] mb-6">Portfólio</h2>
+            <h2 className="font-serif text-2xl font-semibold text-foreground mb-6">Portfólio</h2>
             {media.length === 0 ? (
-              <div className="bg-white border border-[#E8E8E8] p-16 text-center" style={{ borderRadius: "4px" }}>
-                <Video className="h-10 w-10 text-[#D0D0D0] mx-auto mb-3" />
-                <p className="text-sm text-[#777]">Nenhum vídeo publicado ainda</p>
+              <div className="bg-card border border-border p-16 text-center" style={{ borderRadius: "4px" }}>
+                <Video className="h-10 w-10 text-muted-foreground mx-auto mb-3" />
+                <p className="text-sm text-muted-foreground">Nenhum vídeo publicado ainda</p>
               </div>
             ) : (
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                 {media.map((item) => (
                   <div
                     key={item.id}
-                    className="bg-white border border-[#E8E8E8] overflow-hidden"
+                    className="bg-card border border-border overflow-hidden"
                     style={{ borderRadius: "4px" }}
                   >
                     <div className="relative bg-[#0A0A0A] h-44 flex items-center justify-center">
@@ -318,7 +318,7 @@ export default function ArtistPublic() {
                       />
                     </div>
                     <div className="p-3">
-                      <p className="text-xs font-medium text-[#0A0A0A] truncate">{item.fileName}</p>
+                      <p className="text-xs font-medium text-foreground truncate">{item.fileName}</p>
                     </div>
                   </div>
                 ))}
@@ -330,21 +330,21 @@ export default function ArtistPublic() {
         {/* REVIEWS TAB */}
         {activeTab === "reviews" && (
           <div>
-            <h2 className="font-serif text-2xl font-semibold text-[#0A0A0A] mb-6">Avaliações</h2>
+            <h2 className="font-serif text-2xl font-semibold text-foreground mb-6">Avaliações</h2>
 
             {totalReviews === 0 ? (
-              <div className="bg-white border border-[#E8E8E8] p-16 text-center" style={{ borderRadius: "4px" }}>
-                <Star className="h-10 w-10 text-[#D0D0D0] fill-[#D0D0D0] mx-auto mb-3" />
-                <p className="text-sm text-[#777]">Nenhuma avaliação ainda</p>
+              <div className="bg-card border border-border p-16 text-center" style={{ borderRadius: "4px" }}>
+                <Star className="h-10 w-10 text-muted-foreground fill-muted-foreground mx-auto mb-3" />
+                <p className="text-sm text-muted-foreground">Nenhuma avaliação ainda</p>
               </div>
             ) : (
               <>
                 {/* Summary */}
-                <div className="bg-white border border-[#E8E8E8] p-6 mb-6 flex items-center gap-8" style={{ borderRadius: "4px" }}>
+                <div className="bg-card border border-border p-6 mb-6 flex items-center gap-8" style={{ borderRadius: "4px" }}>
                   <div className="text-center">
-                    <p className="font-serif text-5xl font-semibold text-[#0A0A0A]">{Number(avgRating).toFixed(1)}</p>
+                    <p className="font-serif text-5xl font-semibold text-foreground">{Number(avgRating).toFixed(1)}</p>
                     <StarRating rating={avgRating} size="lg" />
-                    <p className="text-xs text-[#777] mt-1">{totalReviews} avaliações</p>
+                    <p className="text-xs text-muted-foreground mt-1">{totalReviews} avaliações</p>
                   </div>
                   <div className="flex-1 space-y-2">
                     {[5, 4, 3, 2, 1].map((stars) => {
@@ -352,12 +352,12 @@ export default function ArtistPublic() {
                       const pct = totalReviews > 0 ? (count / totalReviews) * 100 : 0;
                       return (
                         <div key={stars} className="flex items-center gap-2">
-                          <span className="text-xs text-[#777] w-3">{stars}</span>
+                          <span className="text-xs text-muted-foreground w-3">{stars}</span>
                           <Star className="h-3 w-3 fill-[#C9A961] text-[#C9A961] shrink-0" />
-                          <div className="flex-1 h-1.5 bg-[#F0F0F0]" style={{ borderRadius: "1px" }}>
+                          <div className="flex-1 h-1.5 bg-muted" style={{ borderRadius: "1px" }}>
                             <div className="h-full bg-[#C9A961] transition-all" style={{ width: `${pct}%`, borderRadius: "1px" }} />
                           </div>
-                          <span className="text-xs text-[#777] w-4">{count}</span>
+                          <span className="text-xs text-muted-foreground w-4">{count}</span>
                         </div>
                       );
                     })}
@@ -365,22 +365,22 @@ export default function ArtistPublic() {
                 </div>
 
                 <div className="space-y-3">
-                  {reviews.map((review) => (
+                    {reviews.map((review) => (
                     <div
                       key={review.id}
-                      className="bg-white border border-[#E8E8E8] p-5"
+                      className="bg-card border border-border p-5"
                       style={{ borderRadius: "4px", borderLeft: "3px solid #C9A961" }}
                     >
                       <div className="flex items-center gap-3 mb-2">
                         <StarRating rating={review.rating} />
-                        <span className="text-xs text-[#777] uppercase tracking-[0.3px]">
+                        <span className="text-xs text-muted-foreground uppercase tracking-[0.3px]">
                           {new Date(review.createdAt as unknown as string).toLocaleDateString("pt-BR")}
                         </span>
                       </div>
                       {review.comment ? (
-                        <p className="text-sm text-[#333] leading-relaxed">{review.comment}</p>
+                        <p className="text-sm text-foreground leading-relaxed">{review.comment}</p>
                       ) : (
-                        <p className="text-sm text-[#999] italic">Sem comentário</p>
+                        <p className="text-sm text-muted-foreground italic">Sem comentário</p>
                       )}
                     </div>
                   ))}
@@ -393,34 +393,34 @@ export default function ArtistPublic() {
         {/* ORDER FORM TAB */}
         {activeTab === "order" && artist.availability && (
           <div>
-            <h2 className="font-serif text-2xl font-semibold text-[#0A0A0A] mb-2">Solicitar Vídeo</h2>
-            <p className="text-sm text-[#777] mb-8">
-              Preencha as informações abaixo e aguarde a confirmação de <strong className="text-[#0A0A0A]">{artist.name}</strong>. O pagamento é realizado após a aprovação.
+            <h2 className="font-serif text-2xl font-semibold text-foreground mb-2">Solicitar Vídeo</h2>
+            <p className="text-sm text-muted-foreground mb-8">
+              Preencha as informações abaixo e aguarde a confirmação de <strong className="text-foreground">{artist.name}</strong>. O pagamento é realizado após a aprovação.
             </p>
 
             {orderPlaced ? (
-              <div className="bg-white border border-[#E8E8E8] p-10 text-center" style={{ borderRadius: "4px" }}>
-                <CheckCircle className="h-12 w-12 text-[#C9A961] mx-auto mb-4" />
-                <h3 className="font-serif text-2xl font-semibold text-[#0A0A0A] mb-2">Pedido Enviado!</h3>
-                <p className="text-sm text-[#777] max-w-md mx-auto">
+              <div className="bg-card border border-border p-10 text-center" style={{ borderRadius: "4px" }}>
+                <CheckCircle className="h-12 w-12 text-secondary mx-auto mb-4" />
+                <h3 className="font-serif text-2xl font-semibold text-foreground mb-2">Pedido Enviado!</h3>
+                <p className="text-sm text-muted-foreground max-w-md mx-auto">
                   Seu pedido foi enviado com sucesso. <strong>{artist.name}</strong> entrará em contato pelo e-mail informado.
                 </p>
                 {orderId && (
-                  <div className="mt-4 inline-block px-4 py-2 bg-[#F8F8F8] border border-[#E8E8E8] text-xs text-[#777] font-mono" style={{ borderRadius: "2px" }}>
+                  <div className="mt-4 inline-block px-4 py-2 bg-muted border border-border text-xs text-muted-foreground font-mono" style={{ borderRadius: "2px" }}>
                     Código: {orderId.slice(0, 8).toUpperCase()}
                   </div>
                 )}
                 <button
                   onClick={() => { setOrderPlaced(false); setOrderId(null); }}
-                  className="mt-6 block mx-auto text-sm text-[#C9A961] font-semibold hover:underline"
+                  className="mt-6 block mx-auto text-sm text-secondary font-semibold hover:underline"
                 >
                   Fazer outro pedido
                 </button>
               </div>
             ) : (
-              <div className="bg-white border border-[#E8E8E8]" style={{ borderRadius: "4px" }}>
-                <div className="px-6 py-4 border-b border-[#E8E8E8]">
-                  <p className="text-xs font-semibold text-[#777] uppercase tracking-[0.5px]">Seus dados de contato</p>
+              <div className="bg-card border border-border" style={{ borderRadius: "4px" }}>
+                <div className="px-6 py-4 border-b border-border">
+                  <p className="text-xs font-semibold text-muted-foreground uppercase tracking-[0.5px]">Seus dados de contato</p>
                 </div>
                 <div className="p-6">
                   <Form {...form}>
@@ -431,13 +431,13 @@ export default function ArtistPublic() {
                           name="clientName"
                           render={({ field }) => (
                             <FormItem>
-                              <FormLabel className="text-xs font-semibold uppercase tracking-[0.5px] text-[#1F1F1F]">
+                              <FormLabel className="text-xs font-semibold uppercase tracking-[0.5px] text-foreground">
                                 Nome completo *
                               </FormLabel>
                               <FormControl>
                                 <Input
                                   placeholder="João da Silva"
-                                  className="h-11 border-[#E0E0E0] bg-white text-sm focus-visible:ring-0 focus-visible:border-[#0A0A0A]"
+                                  className="h-11 border-border bg-background text-sm focus-visible:ring-0 focus-visible:border-foreground"
                                   style={{ borderRadius: "2px" }}
                                   {...field}
                                 />
@@ -451,14 +451,14 @@ export default function ArtistPublic() {
                           name="clientEmail"
                           render={({ field }) => (
                             <FormItem>
-                              <FormLabel className="text-xs font-semibold uppercase tracking-[0.5px] text-[#1F1F1F]">
+                              <FormLabel className="text-xs font-semibold uppercase tracking-[0.5px] text-foreground">
                                 E-mail *
                               </FormLabel>
                               <FormControl>
                                 <Input
                                   type="email"
                                   placeholder="joao@exemplo.com"
-                                  className="h-11 border-[#E0E0E0] bg-white text-sm focus-visible:ring-0 focus-visible:border-[#0A0A0A]"
+                                  className="h-11 border-border bg-background text-sm focus-visible:ring-0 focus-visible:border-foreground"
                                   style={{ borderRadius: "2px" }}
                                   {...field}
                                 />
@@ -469,8 +469,8 @@ export default function ArtistPublic() {
                         />
                       </div>
 
-                      <div className="pt-2 border-t border-[#F0F0F0]">
-                        <p className="text-xs font-semibold uppercase tracking-[0.5px] text-[#777] mb-4">Detalhes do vídeo</p>
+                      <div className="pt-2 border-t border-border">
+                        <p className="text-xs font-semibold uppercase tracking-[0.5px] text-muted-foreground mb-4">Detalhes do vídeo</p>
                       </div>
 
                       <FormField
@@ -478,13 +478,13 @@ export default function ArtistPublic() {
                         name="title"
                         render={({ field }) => (
                           <FormItem>
-                            <FormLabel className="text-xs font-semibold uppercase tracking-[0.5px] text-[#1F1F1F]">
-                              Título do pedido *
-                            </FormLabel>
-                            <FormControl>
-                              <Input
-                                placeholder="Ex: Mensagem de aniversário para minha mãe"
-                                className="h-11 border-[#E0E0E0] bg-white text-sm focus-visible:ring-0 focus-visible:border-[#0A0A0A]"
+                              <FormLabel className="text-xs font-semibold uppercase tracking-[0.5px] text-foreground">
+                                Título do pedido *
+                              </FormLabel>
+                              <FormControl>
+                                <Input
+                                  placeholder="Ex: Mensagem de aniversário para minha mãe"
+                                  className="h-11 border-border bg-background text-sm focus-visible:ring-0 focus-visible:border-foreground"
                                 style={{ borderRadius: "2px" }}
                                 {...field}
                               />
@@ -500,13 +500,13 @@ export default function ArtistPublic() {
                           name="occasion"
                           render={({ field }) => (
                             <FormItem>
-                              <FormLabel className="text-xs font-semibold uppercase tracking-[0.5px] text-[#1F1F1F]">
+                              <FormLabel className="text-xs font-semibold uppercase tracking-[0.5px] text-foreground">
                                 Ocasião
                               </FormLabel>
                               <FormControl>
                                 <Input
                                   placeholder="Ex: Aniversário, Casamento..."
-                                  className="h-11 border-[#E0E0E0] bg-white text-sm focus-visible:ring-0 focus-visible:border-[#0A0A0A]"
+                                  className="h-11 border-border bg-background text-sm focus-visible:ring-0 focus-visible:border-foreground"
                                   style={{ borderRadius: "2px" }}
                                   {...field}
                                 />
@@ -520,14 +520,14 @@ export default function ArtistPublic() {
                           name="deadline"
                           render={({ field }) => (
                             <FormItem>
-                              <FormLabel className="text-xs font-semibold uppercase tracking-[0.5px] text-[#1F1F1F]">
+                              <FormLabel className="text-xs font-semibold uppercase tracking-[0.5px] text-foreground">
                                 Prazo desejado *
                               </FormLabel>
                               <FormControl>
                                 <Input
                                   type="date"
                                   min={new Date(Date.now() + 86400000 * 2).toISOString().split("T")[0]}
-                                  className="h-11 border-[#E0E0E0] bg-white text-sm focus-visible:ring-0 focus-visible:border-[#0A0A0A]"
+                                  className="h-11 border-border bg-background text-sm focus-visible:ring-0 focus-visible:border-foreground"
                                   style={{ borderRadius: "2px" }}
                                   {...field}
                                 />
@@ -543,14 +543,14 @@ export default function ArtistPublic() {
                         name="description"
                         render={({ field }) => (
                           <FormItem>
-                            <FormLabel className="text-xs font-semibold uppercase tracking-[0.5px] text-[#1F1F1F]">
+                            <FormLabel className="text-xs font-semibold uppercase tracking-[0.5px] text-foreground">
                               O que você quer no vídeo?
                             </FormLabel>
                             <FormControl>
                               <Textarea
                                 placeholder="Descreva o que você deseja que seja dito ou feito no vídeo..."
                                 rows={4}
-                                className="border-[#E0E0E0] bg-white text-sm focus-visible:ring-0 focus-visible:border-[#0A0A0A] resize-none"
+                                className="border-border bg-background text-sm focus-visible:ring-0 focus-visible:border-foreground resize-none"
                                 style={{ borderRadius: "2px" }}
                                 {...field}
                               />
@@ -565,14 +565,14 @@ export default function ArtistPublic() {
                         name="additionalInstructions"
                         render={({ field }) => (
                           <FormItem>
-                            <FormLabel className="text-xs font-semibold uppercase tracking-[0.5px] text-[#1F1F1F]">
+                            <FormLabel className="text-xs font-semibold uppercase tracking-[0.5px] text-foreground">
                               Instruções adicionais
                             </FormLabel>
                             <FormControl>
                               <Textarea
                                 placeholder="Pronúncia especial, tom desejado, idioma, etc..."
                                 rows={3}
-                                className="border-[#E0E0E0] bg-white text-sm focus-visible:ring-0 focus-visible:border-[#0A0A0A] resize-none"
+                                className="border-border bg-background text-sm focus-visible:ring-0 focus-visible:border-foreground resize-none"
                                 style={{ borderRadius: "2px" }}
                                 {...field}
                               />
@@ -583,19 +583,19 @@ export default function ArtistPublic() {
                       />
 
                       {/* Price summary */}
-                      <div className="bg-[#F8F8F8] border border-[#E8E8E8] p-4 flex items-center justify-between" style={{ borderRadius: "2px" }}>
+                      <div className="bg-muted border border-border p-4 flex items-center justify-between" style={{ borderRadius: "2px" }}>
                         <div>
-                          <p className="text-xs text-[#777] uppercase tracking-[0.5px]">Valor base</p>
-                          <p className="text-lg font-semibold text-[#0A0A0A]">{formatCurrency(artist.basePrice)}</p>
+                          <p className="text-xs text-muted-foreground uppercase tracking-[0.5px]">Valor base</p>
+                          <p className="text-lg font-semibold text-foreground">{formatCurrency(artist.basePrice)}</p>
                         </div>
-                        <p className="text-xs text-[#777] max-w-[200px] text-right">
+                        <p className="text-xs text-muted-foreground max-w-[200px] text-right">
                           Pagamento só será cobrado após aprovação do artista
                         </p>
                       </div>
 
                       <Button
                         type="submit"
-                        className="w-full h-12 bg-[#0A0A0A] text-white font-semibold text-sm hover:bg-[#1F1F1F] transition-colors"
+                        className="w-full h-12 bg-foreground text-background font-semibold text-sm hover:opacity-90 transition-colors"
                         style={{ borderRadius: "2px" }}
                         disabled={createOrderMutation.isPending}
                       >
@@ -611,9 +611,9 @@ export default function ArtistPublic() {
       </div>
 
       {/* FOOTER */}
-      <footer className="bg-[#0A0A0A] text-[#555] text-xs py-8 mt-10">
+      <footer className="bg-foreground text-muted-foreground text-xs py-8 mt-10">
         <div className="max-w-5xl mx-auto px-6 flex flex-col sm:flex-row items-center justify-between gap-2">
-          <span className="text-[#C9A961] font-semibold">ArtistFlow</span>
+          <span className="text-secondary font-semibold">ArtistFlow</span>
           <span>© {new Date().getFullYear()} Todos os direitos reservados</span>
         </div>
       </footer>

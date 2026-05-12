@@ -41,8 +41,22 @@ channel = "stable-25_05"
 [userenv]
 
 [userenv.shared]
-ASAAS_ENV = "sandbox"
+# ── Supabase ──────────────────────────────────────────────────────────────────
 SUPABASE_URL = "https://xbfmxmwrcgnixdwlgjvm.supabase.co"
 SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhiZm14bXdyY2duaXhkd2xnanZtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzc3NzY4MjEsImV4cCI6MjA5MzM1MjgyMX0.czPQHkYaxY0lFNvv-9EIXdNTp24-jFD5OrD6nUwwiyg"
 SUPABASE_SERVICE_ROLE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhiZm14bXdyY2duaXhkd2xnanZtIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3Nzc3NjgyMSwiZXhwIjoyMDkzMzUyODIxfQ.x68WZ-gCpj592U9pv_wwORlVYFIo3hoXhnwB5zkGjoA"
+DATABASE_URL = "postgresql://postgres:postgres@db:5432/artistflow"
+
+# ── Clerk (autenticação) ─────────────────────────────────────────────────────
+CLERK_PUBLISHABLE_KEY = "pk_test_ZW5kbGVzcy1ld2UtOTAuY2xlcmsuYWNjb3VudHMuZGV2JA"
 VITE_CLERK_PUBLISHABLE_KEY = "pk_test_ZW5kbGVzcy1ld2UtOTAuY2xlcmsuYWNjb3VudHMuZGV2JA"
+CLERK_SECRET_KEY = "sk_test_REPLACE_WITH_YOUR_CLERK_SECRET_KEY"
+
+# ── Asaas (pagamentos) ───────────────────────────────────────────────────────
+ASAAS_API_KEY = "REPLACE_WITH_YOUR_ASAAS_API_KEY"
+ASAAS_ENV = "sandbox"
+ASAAS_WEBHOOK_TOKEN = "REPLACE_WITH_YOUR_ASAAS_WEBHOOK_TOKEN"
+
+# ── JWT ───────────────────────────────────────────────────────────────────────
+JWT_SECRET = "REPLACE_WITH_A_SECURE_RANDOM_STRING"
+REFRESH_SECRET = "REPLACE_WITH_ANOTHER_SECURE_RANDOM_STRING"

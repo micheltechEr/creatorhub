@@ -1,333 +1,154 @@
-import { Router } from "express";
-import bcrypt from "bcryptjs";
-import jwt from "jsonwebtoken";
-import { v4 as uuidv4 } from "uuid";
+// middlewares/auth.ts — VERSÃO CORRIGIDA
+// O problema era limit($2) — PostgreSQL não gosta disso com RLS
+
+import { Request, Response, NextFunction } from "express";
+import { getAuth } from "@clerk/express";
 import { db } from "@workspace/db";
-import { artistsTable, refreshTokensTable } from "@workspace/db";
+import { platformUsersTable } from "@workspace/db";
 import { eq } from "drizzle-orm";
-import { RegisterBody, LoginBody, RefreshTokenBody } from "@workspace/api-zod";
-import { authLimiter } from "../lib/rate-limiters";
 import { logger } from "../lib/logger";
 
-const router = Router();
-
-// ── Secrets — must be set in production (OWASP A02 / A07) ───────────────────
-const JWT_SECRET = process.env.JWT_SECRET ?? "dev-jwt-secret";
-const REFRESH_SECRET = process.env.REFRESH_SECRET ?? "dev-refresh-secret";
-
-if (process.env.NODE_ENV === "production") {
-  if (!process.env.JWT_SECRET || !process.env.REFRESH_SECRET) {
-    throw new Error(
-      "JWT_SECRET and REFRESH_SECRET must be set in production.",
-    );
-  }
+export interface AuthRequest extends Request {
+  userId?: string;
+  userRole?: "superadmin" | "artist" | "client";
+  tenantId?: string;
+  artistId?: string;
+  artistEmail?: string;
+  clerkUserId?: string;
+  isSuperAdmin?: boolean;
 }
 
-// ── In-memory brute-force tracker (OWASP A07) ────────────────────────────────
-// Stores failed login attempts per IP. Cleared after LOCKOUT_WINDOW.
-const LOCKOUT_WINDOW_MS = 15 * 60 * 1000; // 15 minutes
-const MAX_FAILED_ATTEMPTS = 5;
+/**
+ * FIX: Não usar limit() — fazer a query SEM parametrizar limit
+ */
+export const requireAuth = async (
+  req: AuthRequest,
+  res: Response,
+  next: NextFunction,
+): Promise<void> => {
+  const auth = getAuth(req);
 
-interface AttemptRecord {
-  count: number;
-  firstAt: number;
-}
-
-const failedAttempts = new Map<string, AttemptRecord>();
-
-function getClientIp(req: import("express").Request): string {
-  return (
-    (req.headers["x-forwarded-for"] as string)?.split(",")[0]?.trim() ??
-    req.socket.remoteAddress ??
-    "unknown"
-  );
-}
-
-function recordFailedAttempt(ip: string): boolean {
-  const now = Date.now();
-  const rec = failedAttempts.get(ip);
-
-  if (!rec || now - rec.firstAt > LOCKOUT_WINDOW_MS) {
-    failedAttempts.set(ip, { count: 1, firstAt: now });
-    return false;
-  }
-
-  rec.count += 1;
-  return rec.count >= MAX_FAILED_ATTEMPTS;
-}
-
-function resetAttempts(ip: string): void {
-  failedAttempts.delete(ip);
-}
-
-function isLockedOut(ip: string): boolean {
-  const rec = failedAttempts.get(ip);
-  if (!rec) return false;
-  if (Date.now() - rec.firstAt > LOCKOUT_WINDOW_MS) {
-    failedAttempts.delete(ip);
-    return false;
-  }
-  return rec.count >= MAX_FAILED_ATTEMPTS;
-}
-
-// Periodically clean up expired records to avoid memory leaks
-setInterval(() => {
-  const now = Date.now();
-  for (const [ip, rec] of failedAttempts.entries()) {
-    if (now - rec.firstAt > LOCKOUT_WINDOW_MS) failedAttempts.delete(ip);
-  }
-}, 5 * 60 * 1000);
-
-// ── Token helpers ─────────────────────────────────────────────────────────────
-const generateTokens = (artistId: string, email: string) => {
-  const accessToken = jwt.sign(
-    { id: artistId, email, role: "artist" },
-    JWT_SECRET,
-    { expiresIn: "30m", algorithm: "HS256" },
-  );
-  const refreshToken = jwt.sign(
-    { userId: artistId, type: "refresh" },
-    REFRESH_SECRET,
-    { expiresIn: "7d", algorithm: "HS256" },
-  );
-  return { accessToken, refreshToken };
-};
-
-// ── POST /auth/register ───────────────────────────────────────────────────────
-router.post("/auth/register", authLimiter, async (req, res) => {
-  const parse = RegisterBody.safeParse(req.body);
-  if (!parse.success) {
-    res
-      .status(400)
-      .json({ error: "Validation error", message: parse.error.message });
-    return;
-  }
-
-  const { name, email, password, categories, tags, basePrice, deliveryDays } =
-    parse.data;
-
-  const existing = await db
-    .select({ id: artistsTable.id })
-    .from(artistsTable)
-    .where(eq(artistsTable.email, email))
-    .limit(1);
-
-  if (existing.length > 0) {
-    res
-      .status(400)
-      .json({ error: "Email already registered", message: "Email já cadastrado" });
-    return;
-  }
-
-  const hashedPassword = await bcrypt.hash(password, 12);
-
-  const [artist] = await db
-    .insert(artistsTable)
-    .values({
-      name,
-      email,
-      hashedPassword,
-      categories,
-      tags: tags ?? [],
-      basePrice: String(basePrice),
-      deliveryDays,
-      availability: true,
-    })
-    .returning();
-
-  const { accessToken, refreshToken } = generateTokens(artist.id, artist.email);
-
-  const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
-  await db.insert(refreshTokensTable).values({
-    token: refreshToken,
-    artistId: artist.id,
-    expiresAt,
-  });
-
-  res.status(201).json({
-    accessToken,
-    refreshToken,
-    expiresIn: 1800,
-    user: { id: artist.id, email: artist.email, name: artist.name },
-  });
-});
-
-// ── POST /auth/login ──────────────────────────────────────────────────────────
-router.post("/auth/login", authLimiter, async (req, res) => {
-  const ip = getClientIp(req);
-
-  // Check if this IP is already locked out
-  if (isLockedOut(ip)) {
-    logger.warn({ ip }, "Brute-force lockout triggered");
-    res.status(429).json({
-      error: "Too many requests",
-      message: "Muitas tentativas de login. Acesso bloqueado temporariamente.",
-      redirectTo: "/",
+  if (!auth.userId) {
+    res.status(401).json({ 
+      error: "Unauthorized", 
+      message: "Autenticação necessária" 
     });
     return;
   }
 
-  const parse = LoginBody.safeParse(req.body);
-  if (!parse.success) {
-    res
-      .status(400)
-      .json({ error: "Validation error", message: parse.error.message });
-    return;
-  }
+  try {
+    logger.info({ clerkUserId: auth.userId }, "[AUTH] Iniciando lookup");
 
-  const { email, password } = parse.data;
+    // ⚠️ FIX: Não usar .limit(1) — isso causa "Tenant or user not found"
+    // Solução: Fazer a query sem limit() parametrizado
+    const query = db
+      .select()
+      .from(platformUsersTable)
+      .where(eq(platformUsersTable.clerkUserId, auth.userId));
 
-  const [artist] = await db
-    .select()
-    .from(artistsTable)
-    .where(eq(artistsTable.email, email))
-    .limit(1);
+    logger.debug({ query: query.toSQL() }, "[AUTH] Query SQL");
 
-  // Use constant-time comparison to prevent timing attacks
-  const dummyHash =
-    "$2a$12$invalidhashfortimingprotectionxxxxxxxxxxxxxxxxxxxxxxxx";
-  const match = artist?.hashedPassword
-    ? await bcrypt.compare(password, artist.hashedPassword)
-    : await bcrypt.compare(password, dummyHash).then(() => false);
+    const users = await query;
+    const user = users[0];
 
-  if (!artist || !match) {
-    const locked = recordFailedAttempt(ip);
-    logger.warn({ ip, email, locked }, "Failed login attempt");
+    logger.info(
+      { found: !!user, userId: user?.id },
+      "[AUTH] Query resultado"
+    );
 
-    if (locked) {
-      res.status(429).json({
-        error: "Too many requests",
-        message: "Muitas tentativas de login. Acesso bloqueado temporariamente.",
-        redirectTo: "/",
+    if (!user) {
+      logger.info(
+        { clerkUserId: auth.userId },
+        "[AUTH] Usuário não encontrado — requer onboarding"
+      );
+      
+      res.status(403).json({
+        error: "No profile",
+        message: "Perfil não encontrado. Complete o cadastro.",
+        needsOnboarding: true,
       });
       return;
     }
 
-    res
-      .status(401)
-      .json({ error: "Unauthorized", message: "Email ou senha incorretos" });
-    return;
-  }
+    // ✅ Usuário encontrado
+    req.userId = user.id;
+    req.userRole = user.role;
+    req.clerkUserId = auth.userId;
+    req.isSuperAdmin = user.role === "superadmin";
 
-  resetAttempts(ip);
-
-  const { accessToken, refreshToken } = generateTokens(artist.id, artist.email);
-
-  const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
-  await db.insert(refreshTokensTable).values({
-    token: refreshToken,
-    artistId: artist.id,
-    expiresAt,
-  });
-
-  res.json({
-    accessToken,
-    refreshToken,
-    expiresIn: 1800,
-    user: { id: artist.id, email: artist.email, name: artist.name },
-  });
-});
-
-// ── POST /auth/refresh ────────────────────────────────────────────────────────
-router.post("/auth/refresh", authLimiter, async (req, res) => {
-  const parse = RefreshTokenBody.safeParse(req.body);
-  if (!parse.success) {
-    res
-      .status(400)
-      .json({ error: "Validation error", message: parse.error.message });
-    return;
-  }
-
-  const { refreshToken } = parse.data;
-
-  try {
-    const decoded = jwt.verify(refreshToken, REFRESH_SECRET) as {
-      userId: string;
-      type: string;
-    };
-    if (decoded.type !== "refresh") {
-      res
-        .status(401)
-        .json({ error: "Unauthorized", message: "Token tipo inválido" });
-      return;
+    // Backward compat
+    if (user.role === "artist" && user.tenantId) {
+      req.artistId = user.tenantId;
+      req.tenantId = user.tenantId;
     }
 
-    const [stored] = await db
-      .select()
-      .from(refreshTokensTable)
-      .where(eq(refreshTokensTable.token, refreshToken))
-      .limit(1);
-
-    if (!stored || stored.isRevoked || stored.expiresAt < new Date()) {
-      res
-        .status(401)
-        .json({ error: "Unauthorized", message: "Refresh token revogado ou expirado" });
-      return;
-    }
-
-    const [artist] = await db
-      .select()
-      .from(artistsTable)
-      .where(eq(artistsTable.id, decoded.userId))
-      .limit(1);
-
-    if (!artist) {
-      res
-        .status(401)
-        .json({ error: "Unauthorized", message: "Artista não encontrado" });
-      return;
-    }
-
-    // Rotate refresh token (OWASP A07)
-    await db
-      .update(refreshTokensTable)
-      .set({ isRevoked: true })
-      .where(eq(refreshTokensTable.token, refreshToken));
-
-    const newAccessToken = jwt.sign(
-      { id: artist.id, email: artist.email, role: "artist" },
-      JWT_SECRET,
-      { expiresIn: "30m", algorithm: "HS256" },
-    );
-    const newRefreshToken = jwt.sign(
-      { userId: artist.id, type: "refresh" },
-      REFRESH_SECRET,
-      { expiresIn: "7d", algorithm: "HS256" },
+    logger.info(
+      { userId: user.id, role: user.role },
+      "[AUTH] ✅ Autenticação bem-sucedida"
     );
 
-    const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
-    await db.insert(refreshTokensTable).values({
-      token: newRefreshToken,
-      artistId: artist.id,
-      expiresAt,
+    next();
+  } catch (err) {
+    logger.error(
+      { 
+        err,
+        message: (err as any).message,
+        clerkUserId: auth.userId 
+      },
+      "[AUTH] ❌ Database error"
+    );
+    
+    res.status(500).json({ 
+      error: "Internal Server Error",
+      message: "Erro ao validar autenticação"
     });
+  }
+};
 
-    res.json({
-      accessToken: newAccessToken,
-      refreshToken: newRefreshToken,
-      expiresIn: 1800,
+/** Only artists (or superadmin) can access tenant routes */
+export const requireArtistRole = (
+  req: AuthRequest,
+  res: Response,
+  next: NextFunction,
+): void => {
+  if (!req.userId) {
+    res.status(401).json({ error: "Unauthorized" });
+    return;
+  }
+  if (req.userRole !== "artist" && req.userRole !== "superadmin") {
+    res.status(403).json({ 
+      error: "Forbidden", 
+      message: "Acesso restrito a artistas" 
     });
-  } catch {
-    res
-      .status(401)
-      .json({ error: "Unauthorized", message: "Refresh token inválido" });
+    return;
   }
-});
-
-// ── POST /auth/logout ─────────────────────────────────────────────────────────
-router.post("/auth/logout", async (req, res) => {
-  const body = req.body as { refreshToken?: string };
-  if (body.refreshToken) {
-    try {
-      await db
-        .update(refreshTokensTable)
-        .set({ isRevoked: true })
-        .where(eq(refreshTokensTable.token, body.refreshToken));
-    } catch {
-      /* ignore */
-    }
+  if (req.userRole === "artist" && !req.tenantId) {
+    res.status(403).json({
+      error: "No tenant",
+      message: "Perfil de artista não encontrado",
+      needsOnboarding: true,
+    });
+    return;
   }
-  res.json({ message: "Sessão encerrada com sucesso" });
-});
+  next();
+};
 
-export default router;
+/** Only superadmin can access admin routes */
+export const requireSuperAdmin = (
+  req: AuthRequest,
+  res: Response,
+  next: NextFunction,
+): void => {
+  if (!req.userId) {
+    res.status(401).json({ error: "Unauthorized" });
+    return;
+  }
+  if (!req.isSuperAdmin) {
+    res.status(403).json({ 
+      error: "Forbidden", 
+      message: "Acesso restrito ao administrador" 
+    });
+    return;
+  }
+  next();
+};

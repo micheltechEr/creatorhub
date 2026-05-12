@@ -15,7 +15,7 @@ export const platformUsersTable = pgTable("platform_users", {
   clerkUserId: text("clerk_user_id").unique().notNull(),
   email: text("email").notNull(),
   name: text("name").notNull(),
-  role: text("role").$type<UserRole>().notNull().default("artist"),
+  role: text("role").$type<UserRole>().notNull().default("client"),
   // For artist role: references artists.id (the tenant profile/workspace)
   tenantId: uuid("tenant_id").references(() => artistsTable.id, {
     onDelete: "set null",

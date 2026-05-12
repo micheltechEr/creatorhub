@@ -2,7 +2,7 @@ import { Router } from "express";
 import { db } from "@workspace/db";
 import { artistsTable, platformUsersTable } from "@workspace/db";
 import { eq, and, gte, lte, sql } from "drizzle-orm";
-import { requireAuth, AuthRequest } from "../middlewares/auth";
+import { requireAuth, AuthRequest, requireArtistRole } from "../middlewares/auth";
 import { UpdateMeBody, ToggleAvailabilityBody } from "@workspace/api-zod";
 import { getAuth } from "@clerk/express";
 import { z } from "zod";
@@ -135,7 +135,7 @@ router.post("/artists/onboard", async (req, res) => {
 });
 
 // ── GET /artists/me ───────────────────────────────────────────────────────────
-router.get("/artists/me", requireAuth, async (req: AuthRequest, res) => {
+router.get("/artists/me", requireAuth, requireArtistRole, async (req: AuthRequest, res) => {
   const [artist] = await db
     .select()
     .from(artistsTable)
@@ -151,7 +151,7 @@ router.get("/artists/me", requireAuth, async (req: AuthRequest, res) => {
 });
 
 // ── PUT /artists/me ───────────────────────────────────────────────────────────
-router.put("/artists/me", requireAuth, async (req: AuthRequest, res) => {
+router.put("/artists/me", requireAuth, requireArtistRole, async (req: AuthRequest, res) => {
   const parse = UpdateMeBody.safeParse(req.body);
   if (!parse.success) {
     res.status(400).json({ error: "Validation error", message: parse.error.message });
@@ -178,7 +178,7 @@ router.put("/artists/me", requireAuth, async (req: AuthRequest, res) => {
 });
 
 // ── PATCH /artists/me/availability ────────────────────────────────────────────
-router.patch("/artists/me/availability", requireAuth, async (req: AuthRequest, res) => {
+router.patch("/artists/me/availability", requireAuth, requireArtistRole, async (req: AuthRequest, res) => {
   const parse = ToggleAvailabilityBody.safeParse(req.body);
   if (!parse.success) {
     res.status(400).json({ error: "Validation error", message: parse.error.message });

@@ -117,7 +117,7 @@ export default function Media() {
           <Button
             onClick={() => fileInputRef.current?.click()}
             disabled={uploadMutation.isPending}
-            className="bg-[#0A0A0A] text-white hover:bg-[#1F1F1F] text-sm font-semibold"
+            className="bg-foreground text-background hover:opacity-90 text-sm font-semibold"
             style={{ borderRadius: "2px" }}
           >
             <Upload className="mr-2 h-3.5 w-3.5" />
@@ -138,7 +138,7 @@ export default function Media() {
         className={`border-2 border-dashed p-10 text-center transition-all cursor-pointer ${
           dragOver
             ? "border-[#C9A961] bg-[#C9A961]/5"
-            : "border-[#E0E0E0] hover:border-[#C9A961]/50 hover:bg-[#F8F8F8]"
+            : "border-border hover:border-[#C9A961]/50 hover:bg-muted"
         }`}
         style={{ borderRadius: "4px" }}
         onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
@@ -146,11 +146,11 @@ export default function Media() {
         onDrop={handleDrop}
         onClick={() => fileInputRef.current?.click()}
       >
-        <FileVideo className="h-8 w-8 text-[#BDBDBD] mx-auto mb-3" />
-        <p className="text-sm font-medium text-[#555]">
+        <FileVideo className="h-8 w-8 text-muted-foreground mx-auto mb-3" />
+        <p className="text-sm font-medium text-muted-foreground">
           Arraste um vídeo aqui ou <span className="text-[#C9A961] font-semibold">clique para selecionar</span>
         </p>
-        <p className="text-xs text-[#999] mt-1">
+        <p className="text-xs text-muted-foreground mt-1">
           MP4, MOV, AVI · Máximo {MAX_SIZE_MB}MB
         </p>
         {uploadMutation.isPending && (
@@ -165,24 +165,24 @@ export default function Media() {
       {isLoading ? (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {Array.from({ length: 6 }).map((_, i) => (
-            <div key={i} className="h-48 bg-[#F0F0F0] animate-pulse" style={{ borderRadius: "4px" }} />
+            <div key={i} className="h-48 bg-muted animate-pulse" style={{ borderRadius: "4px" }} />
           ))}
         </div>
       ) : media.length === 0 ? (
         <div
-          className="bg-white border border-[#E8E8E8] p-16 text-center"
+          className="bg-card border border-border p-16 text-center"
           style={{ borderRadius: "4px" }}
         >
-          <Video className="h-10 w-10 text-[#D0D0D0] mx-auto mb-3" />
-          <p className="text-sm font-medium text-[#555]">Nenhum vídeo publicado ainda</p>
-          <p className="text-xs text-[#999] mt-1">Envie vídeos para exibir no seu portfólio público</p>
+          <Video className="h-10 w-10 text-muted-foreground mx-auto mb-3" />
+          <p className="text-sm font-medium text-muted-foreground">Nenhum vídeo publicado ainda</p>
+          <p className="text-xs text-muted-foreground mt-1">Envie vídeos para exibir no seu portfólio público</p>
         </div>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {media.map((item) => (
             <div
               key={item.id}
-              className="bg-white border border-[#E8E8E8] overflow-hidden group"
+              className="bg-card border border-border overflow-hidden group"
               style={{ borderRadius: "4px" }}
             >
               <div className="relative bg-[#0A0A0A] h-44 flex items-center justify-center">
@@ -223,7 +223,7 @@ export default function Media() {
                         <AlertDialogCancel style={{ borderRadius: "2px" }}>Cancelar</AlertDialogCancel>
                         <AlertDialogAction
                           onClick={() => handleDelete(item.id)}
-                          className="bg-[#0A0A0A] hover:bg-[#1F1F1F]"
+                          className="bg-foreground text-background hover:opacity-90"
                           style={{ borderRadius: "2px" }}
                         >
                           Remover
@@ -233,9 +233,9 @@ export default function Media() {
                   </AlertDialog>
                 </div>
               </div>
-              <div className="p-3 border-t border-[#F0F0F0]">
-                <p className="text-xs font-medium text-[#0A0A0A] truncate">{item.fileName}</p>
-                <p className="text-xs text-[#999] mt-0.5">{formatFileSize(item.fileSize)}</p>
+              <div className="p-3 border-t border-border">
+                <p className="text-xs font-medium text-foreground truncate">{item.fileName}</p>
+                <p className="text-xs text-muted-foreground mt-0.5">{formatFileSize(item.fileSize)}</p>
               </div>
             </div>
           ))}

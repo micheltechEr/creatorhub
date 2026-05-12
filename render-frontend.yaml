@@ -1,11 +1,47 @@
-services:
-  - type: web
-    name: creatorhub-web
-    env: static
-    buildCommand: pnpm install && pnpm --filter @workspace/artist-platform run build
-    staticPublishPath: artifacts/artist-platform/dist
+# =============================================================================
+# Render Blueprint — CreatorHub Frontend (Static Site)
+# Deploy separado: crie um "Static Site" no Render Dashboard vinculado a este yaml
+# ou use "New" → "Blueprint" com este arquivo.
+# Docs: https://render.com/docs/static-sites
+# =============================================================================
+
+staticSites:
+  - type: static_site
+    name: creatorhub-frontend
+    plan: starter
+    region: sao-paulo
+    branch: main
+
+    buildCommand: |
+      corepack enable &&
+      corepack prepare pnpm@latest --activate &&
+      pnpm install --frozen-lockfile &&
+      pnpm --filter @workspace/api-spec run codegen &&
+      pnpm --filter @workspace/artist-platform run build
+
+    staticPublishPath: artifacts/artist-platform/dist/public
+
+    # Variáveis de ambiente do frontend (Vite)
+    # VITE_API_BASE_URL: URL da API no Render
     envVars:
-      - key: VITE_CLERK_PUBLISHABLE_KEY
-        sync: false
       - key: VITE_API_BASE_URL
-        value: https://creatorhub-api.onrender.com
+        sync: false
+      - key: PORT
+        value: "8080"
+
+    headers:
+      - path: /*
+        name: X-Frame-Options
+        value: DENY
+      - path: /*
+        name: X-Content-Type-Options
+        value: nosniff
+      - path: /*
+        name: Referrer-Policy
+        value: strict-origin-when-cross-origin
+
+    routes:
+      # SPA fallback — todas as rotas retornam index.html
+      - type: rewrite
+        source: /*
+        destination: /index.html

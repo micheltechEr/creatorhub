@@ -12,6 +12,9 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
+import { Skeleton, SkeletonCard } from "@/components/ui/skeleton";
+import { EmptyState } from "@/components/ui/empty-state";
+import { Breadcrumb } from "@/components/ui/breadcrumb";
 import { formatCurrency, formatDate } from "@/lib/format";
 import { Link } from "wouter";
 import {
@@ -23,25 +26,16 @@ import {
   Tooltip,
   ResponsiveContainer,
 } from "recharts";
-import { TrendingUp, Clock, CheckCircle2, Star, ArrowRight, AlertCircle } from "lucide-react";
+import { TrendingUp, Clock, CheckCircle2, Star, ArrowRight, AlertCircle, ListOrdered } from "lucide-react";
 import { toast } from "sonner";
 
 const STATUS_BADGE: Record<string, { text: string; className: string; borderColor: string }> = {
-  PROPOSED:        { text: "Proposto",           className: "text-[#1E5BA1] bg-[#F0F5FB] border-[#D0E2F4]", borderColor: "#1E5BA1" },
-  PAYMENT_PENDING: { text: "Aguard. Pagamento",  className: "text-[#B8860B] bg-[#FFFBF0] border-[#F0D990]", borderColor: "#B8860B" },
-  PAID:            { text: "Pago",               className: "text-[#2D8A45] bg-[#F0F7F2] border-[#B8DFC4]", borderColor: "#2D8A45" },
-  IN_PROGRESS:     { text: "Em Andamento",       className: "text-[#8A6A1B] bg-[#FFFAF0] border-[#E8D5A3]", borderColor: "#C9A961" },
-  DELIVERED:       { text: "Entregue",           className: "text-[#2D8A45] bg-[#F0F7F2] border-[#B8DFC4]", borderColor: "#2D8A45" },
-  CANCELLED:       { text: "Cancelado",          className: "text-[#A53A3A] bg-[#FAF0F0] border-[#E8B8B8]", borderColor: "#A53A3A" },
-};
-
-const STATUS_BORDER: Record<string, string> = {
-  PROPOSED:        "#1E5BA1",
-  PAYMENT_PENDING: "#B8860B",
-  PAID:            "#2D8A45",
-  IN_PROGRESS:     "#C9A961",
-  DELIVERED:       "#2D8A45",
-  CANCELLED:       "#A53A3A",
+  PROPOSED:        { text: "Proposto",           className: "text-[#1E5BA1] bg-[#F0F5FB] dark:bg-[#0D1B2A] dark:text-[#6FA8DC] border-[#D0E2F4] dark:border-[#1E3A5F]", borderColor: "#1E5BA1" },
+  PAYMENT_PENDING: { text: "Aguard. Pagamento",  className: "text-[#B8860B] bg-[#FFFBF0] dark:bg-[#2A2000] dark:text-[#F0D990] border-[#F0D990] dark:border-[#3D2E00]", borderColor: "#B8860B" },
+  PAID:            { text: "Pago",               className: "text-[#2D8A45] bg-[#F0F7F2] dark:bg-[#0D2818] dark:text-[#6FCF8C] border-[#B8DFC4] dark:border-[#1A4D2E]", borderColor: "#2D8A45" },
+  IN_PROGRESS:     { text: "Em Andamento",       className: "text-[#8A6A1B] bg-[#FFFAF0] dark:bg-[#2A2000] dark:text-[#C9A961] border-[#E8D5A3] dark:border-[#3D2E00]", borderColor: "#C9A961" },
+  DELIVERED:       { text: "Entregue",           className: "text-[#2D8A45] bg-[#F0F7F2] dark:bg-[#0D2818] dark:text-[#6FCF8C] border-[#B8DFC4] dark:border-[#1A4D2E]", borderColor: "#2D8A45" },
+  CANCELLED:       { text: "Cancelado",          className: "text-[#A53A3A] bg-[#FAF0F0] dark:bg-[#2A0D0D] dark:text-[#E88B8B] border-[#E8B8B8] dark:border-[#5A1A1A]", borderColor: "#A53A3A" },
 };
 
 function StatusBadge({ status }: { status: string }) {
@@ -57,12 +51,30 @@ function StatusBadge({ status }: { status: string }) {
   );
 }
 
+function DashboardSkeleton() {
+  return (
+    <div className="space-y-8">
+      <div>
+        <Skeleton className="h-10 w-48 mb-2" />
+        <Skeleton className="h-4 w-64" />
+      </div>
+      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
+        {Array.from({ length: 4 }).map((_, i) => (
+          <SkeletonCard key={i} />
+        ))}
+      </div>
+      <Skeleton className="h-64 w-full" />
+      <Skeleton className="h-48 w-full" />
+    </div>
+  );
+}
+
 export default function Dashboard() {
   const queryClient = useQueryClient();
   const { data: stats, isLoading: statsLoading } = useGetDashboardStats({
     query: { queryKey: getGetDashboardStatsQueryKey() },
   });
-  const { data: recentData } = useGetRecentOrders(
+  const { data: recentData, isLoading: recentLoading } = useGetRecentOrders(
     {},
     { query: { queryKey: getGetRecentOrdersQueryKey() } },
   );
@@ -88,16 +100,12 @@ export default function Dashboard() {
       ganhos: m.earnings,
     })) ?? [];
 
-  if (statsLoading) {
-    return (
-      <div className="flex items-center justify-center h-64">
-        <div className="text-muted-foreground text-sm">Carregando...</div>
-      </div>
-    );
-  }
+  if (statsLoading) return <DashboardSkeleton />;
 
   return (
     <div className="space-y-8">
+      <Breadcrumb items={[{ label: "Dashboard" }]} />
+
       {/* Header */}
       <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
         <div>
@@ -107,7 +115,7 @@ export default function Dashboard() {
           </p>
         </div>
         <div
-          className="flex items-center gap-3 bg-white border border-border px-4 py-3"
+          className="flex items-center gap-3 bg-card border border-border px-4 py-3"
           style={{ borderRadius: "4px", boxShadow: "0 2px 8px rgba(0,0,0,0.06)" }}
         >
           <span className="text-xs font-medium uppercase tracking-[0.5px] text-muted-foreground">
@@ -154,7 +162,7 @@ export default function Dashboard() {
         ].map((card) => (
           <Card
             key={card.label}
-            className="bg-white border-border"
+            className="bg-card border-border"
             style={{ borderRadius: "4px", boxShadow: "0 2px 8px rgba(0,0,0,0.06)" }}
           >
             <CardHeader className="flex flex-row items-center justify-between pb-2">
@@ -174,7 +182,7 @@ export default function Dashboard() {
       {/* Orders by status */}
       {stats?.ordersByStatus && stats.ordersByStatus.length > 0 && (
         <Card
-          className="bg-white border-border"
+          className="bg-card border-border"
           style={{ borderRadius: "4px", boxShadow: "0 2px 8px rgba(0,0,0,0.06)" }}
         >
           <CardHeader>
@@ -185,7 +193,7 @@ export default function Dashboard() {
               {stats.ordersByStatus.map((s) => (
                 <div
                   key={s.status}
-                  className="flex items-center gap-3 border border-border bg-[#F8F8F8] px-4 py-2"
+                  className="flex items-center gap-3 border border-border bg-muted/50 px-4 py-2"
                   style={{ borderRadius: "2px" }}
                 >
                   <StatusBadge status={s.status} />
@@ -200,7 +208,7 @@ export default function Dashboard() {
       {/* Earnings chart */}
       {chartData.length > 0 && (
         <Card
-          className="bg-white border-border"
+          className="bg-card border-border"
           style={{ borderRadius: "4px", boxShadow: "0 2px 8px rgba(0,0,0,0.06)" }}
         >
           <CardHeader>
@@ -215,12 +223,12 @@ export default function Dashboard() {
                     <stop offset="95%" stopColor="#C9A961" stopOpacity={0} />
                   </linearGradient>
                 </defs>
-                <CartesianGrid strokeDasharray="3 3" stroke="#E5E5E5" />
-                <XAxis dataKey="name" tick={{ fontSize: 11, fill: "#6D6D6D" }} />
-                <YAxis tick={{ fontSize: 11, fill: "#6D6D6D" }} tickFormatter={(v) => `R$${v}`} />
+                <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
+                <XAxis dataKey="name" tick={{ fontSize: 11 }} className="text-muted-foreground" />
+                <YAxis tick={{ fontSize: 11 }} tickFormatter={(v) => `R$${v}`} className="text-muted-foreground" />
                 <Tooltip
                   formatter={(v: number) => formatCurrency(v)}
-                  contentStyle={{ borderRadius: "2px", border: "1px solid #E5E5E5", fontSize: "12px" }}
+                  contentStyle={{ borderRadius: "2px", border: "1px solid var(--border)", fontSize: "12px", background: "var(--card)" }}
                 />
                 <Area
                   type="monotone"
@@ -237,7 +245,7 @@ export default function Dashboard() {
 
       {/* Recent orders */}
       <Card
-        className="bg-white border-border"
+        className="bg-card border-border"
         style={{ borderRadius: "4px", boxShadow: "0 2px 8px rgba(0,0,0,0.06)" }}
       >
         <CardHeader className="flex flex-row items-center justify-between">
@@ -253,15 +261,29 @@ export default function Dashboard() {
           </Link>
         </CardHeader>
         <CardContent>
-          {!recentData?.orders || recentData.orders.length === 0 ? (
-            <div className="text-center py-10 text-muted-foreground text-sm">
-              Nenhum pedido ainda. Compartilhe seu perfil para começar!
+          {recentLoading ? (
+            <div className="space-y-3">
+              {Array.from({ length: 3 }).map((_, i) => (
+                <div key={i} className="flex items-center justify-between py-3">
+                  <div className="space-y-2">
+                    <Skeleton className="h-4 w-48" />
+                    <Skeleton className="h-3 w-32" />
+                  </div>
+                  <Skeleton className="h-6 w-24" />
+                </div>
+              ))}
             </div>
+          ) : !recentData?.orders || recentData.orders.length === 0 ? (
+            <EmptyState
+              icon={ListOrdered}
+              title="Nenhum pedido ainda"
+              description="Compartilhe seu perfil público para receber seus primeiros pedidos."
+            />
           ) : (
             <div className="divide-y divide-border">
               {recentData.orders.map((order) => (
                 <Link key={order.id} href={`/orders/${order.id}`}>
-                  <div className="flex items-center justify-between py-3 hover:bg-[#F8F8F8] px-2 -mx-2 transition-colors duration-150 cursor-pointer">
+                  <div className="flex items-center justify-between py-3 hover:bg-muted/50 px-2 -mx-2 transition-colors duration-150 cursor-pointer">
                     <div className="flex-1 min-w-0">
                       <p className="text-sm font-semibold truncate text-foreground">{order.title}</p>
                       <p className="text-xs text-muted-foreground mt-0.5">

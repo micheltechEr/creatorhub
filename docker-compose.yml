@@ -1,4 +1,5 @@
 services:
+  # ── API Server ───────────────────────────────────────────────────────────
   app:
     build:
       context: .
@@ -9,11 +10,15 @@ services:
       - "8080:8080"
     environment:
       NODE_ENV: production
+      PORT: 8080
       DATABASE_URL: ${DATABASE_URL}
       JWT_SECRET: ${JWT_SECRET}
       REFRESH_SECRET: ${REFRESH_SECRET}
+      CLERK_SECRET_KEY: ${CLERK_SECRET_KEY}
+      CLERK_PUBLISHABLE_KEY: ${CLERK_PUBLISHABLE_KEY}
       ASAAS_API_KEY: ${ASAAS_API_KEY}
       ASAAS_ENV: ${ASAAS_ENV:-sandbox}
+      CORS_ORIGIN: ${CORS_ORIGIN:-http://localhost:3000}
     volumes:
       - uploads:/app/uploads
     healthcheck:
@@ -21,14 +26,15 @@ services:
       interval: 30s
       timeout: 5s
       retries: 3
-      start_period: 10s
+      start_period: 15s
     depends_on:
       db:
         condition: service_healthy
 
+  # ── PostgreSQL ───────────────────────────────────────────────────────────
   db:
     image: postgres:16-alpine
-    container_name: artistflow-db
+    container_name: creatorhub-db
     restart: unless-stopped
     environment:
       POSTGRES_USER: ${POSTGRES_USER:-artistflow}

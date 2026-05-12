@@ -150,7 +150,7 @@ export default function Profile() {
             </Button>
             <Button
               onClick={startEdit}
-              className="bg-[#0A0A0A] text-white hover:bg-[#1F1F1F] text-sm font-semibold"
+              className="bg-foreground text-background hover:opacity-90 text-sm font-semibold"
               style={{ borderRadius: "2px" }}
             >
               <Pencil className="mr-2 h-3.5 w-3.5" /> Editar Perfil
@@ -169,7 +169,7 @@ export default function Profile() {
             <Button
               onClick={handleSave}
               disabled={updateMutation.isPending}
-              className="bg-[#0A0A0A] text-white hover:bg-[#1F1F1F] text-sm font-semibold"
+              className="bg-foreground text-background hover:opacity-90 text-sm font-semibold"
               style={{ borderRadius: "2px" }}
             >
               <Check className="mr-2 h-3.5 w-3.5" />
@@ -202,7 +202,7 @@ export default function Profile() {
         ].map((stat, i) => (
           <div
             key={i}
-            className="bg-white border border-border p-4 text-center"
+            className="bg-card border border-border p-4 text-center"
             style={cardStyle}
           >
             <div className="mb-0.5">{stat.top}</div>
@@ -213,7 +213,7 @@ export default function Profile() {
 
       {/* Availability */}
       <div
-        className="bg-white border border-border p-5 flex items-center justify-between"
+        className="bg-card border border-border p-5 flex items-center justify-between"
         style={cardStyle}
       >
         <div>
@@ -242,7 +242,7 @@ export default function Profile() {
 
       {/* Public link */}
       <div
-        className="bg-white border border-[#C9A961]/30 p-5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3"
+        className="bg-card border border-[#C9A961]/30 p-5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3"
         style={cardStyle}
       >
         <div>
@@ -279,13 +279,13 @@ export default function Profile() {
       </div>
 
       {/* Profile info */}
-      <div className="bg-white border border-border" style={cardStyle}>
+      <div className="bg-card border border-border" style={cardStyle}>
         <div className="px-6 py-4 border-b border-border">
           <h3 className="text-sm font-semibold text-foreground">Informações do Perfil</h3>
         </div>
         <div className="p-6 space-y-6">
           <div className="space-y-1.5">
-            <Label className="text-xs font-medium uppercase tracking-[0.5px] text-[#1F1F1F]">
+            <Label className="text-xs font-medium uppercase tracking-[0.5px] text-foreground">
               Nome artístico
             </Label>
             {editing ? (
@@ -301,7 +301,7 @@ export default function Profile() {
           </div>
 
           <div className="space-y-1.5">
-            <Label className="text-xs font-medium uppercase tracking-[0.5px] text-[#1F1F1F]">
+            <Label className="text-xs font-medium uppercase tracking-[0.5px] text-foreground">
               Bio / Apresentação
             </Label>
             {editing ? (
@@ -321,7 +321,7 @@ export default function Profile() {
           </div>
 
           <div className="space-y-1.5">
-            <Label className="text-xs font-medium uppercase tracking-[0.5px] text-[#1F1F1F]">
+            <Label className="text-xs font-medium uppercase tracking-[0.5px] text-foreground">
               E-mail
             </Label>
             <p className="text-sm text-muted-foreground">{artist.email}</p>
@@ -329,7 +329,7 @@ export default function Profile() {
 
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-1.5">
-              <Label className="text-xs font-medium uppercase tracking-[0.5px] text-[#1F1F1F]">
+              <Label className="text-xs font-medium uppercase tracking-[0.5px] text-foreground">
                 Preço Base (BRL)
               </Label>
               {editing ? (
@@ -350,7 +350,7 @@ export default function Profile() {
               )}
             </div>
             <div className="space-y-1.5">
-              <Label className="text-xs font-medium uppercase tracking-[0.5px] text-[#1F1F1F]">
+              <Label className="text-xs font-medium uppercase tracking-[0.5px] text-foreground">
                 Prazo de Entrega (dias)
               </Label>
               {editing ? (
@@ -370,7 +370,7 @@ export default function Profile() {
           </div>
 
           <div className="space-y-1.5">
-            <Label className="text-xs font-medium uppercase tracking-[0.5px] text-[#1F1F1F]">
+            <Label className="text-xs font-medium uppercase tracking-[0.5px] text-foreground">
               Categorias
             </Label>
             {editing ? (
@@ -382,8 +382,8 @@ export default function Profile() {
                     onClick={() => toggleCategory(cat)}
                     className={`p-2.5 border text-xs font-medium transition-colors duration-150 ${
                       formData.categories.includes(cat)
-                        ? "bg-[#0A0A0A] text-white border-[#0A0A0A]"
-                        : "border-border text-muted-foreground hover:bg-[#F8F8F8] hover:text-foreground"
+                        ? "bg-foreground text-background border-foreground"
+                        : "border-border text-muted-foreground hover:bg-muted hover:text-foreground"
                     }`}
                     style={{ borderRadius: "2px" }}
                   >
@@ -396,7 +396,7 @@ export default function Profile() {
                 {artist.categories.map((cat) => (
                   <span
                     key={cat}
-                    className="inline-flex items-center px-3 py-1.5 text-xs font-medium bg-[#ECECEC] text-[#1F1F1F]"
+                    className="inline-flex items-center px-3 py-1.5 text-xs font-medium bg-muted text-foreground"
                     style={{ borderRadius: "2px" }}
                   >
                     {cat}
@@ -407,7 +407,7 @@ export default function Profile() {
           </div>
 
           <div className="space-y-1.5">
-            <Label className="text-xs font-medium uppercase tracking-[0.5px] text-[#1F1F1F]">
+            <Label className="text-xs font-medium uppercase tracking-[0.5px] text-foreground">
               Tags
             </Label>
             {editing ? (
@@ -424,7 +424,7 @@ export default function Profile() {
                   {formData.tags.map((tag) => (
                     <span
                       key={tag}
-                      className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium bg-[#0A0A0A] text-white"
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium bg-foreground text-background"
                       style={{ borderRadius: "2px" }}
                     >
                       {tag}

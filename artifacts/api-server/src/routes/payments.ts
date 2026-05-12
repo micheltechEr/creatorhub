@@ -2,7 +2,7 @@ import { Router } from "express";
 import { db } from "@workspace/db";
 import { paymentsTable, ordersTable } from "@workspace/db";
 import { eq, and } from "drizzle-orm";
-import { requireAuth, AuthRequest } from "../middlewares/auth";
+import { requireAuth, AuthRequest, requireArtistRole } from "../middlewares/auth";
 import { CreateCheckoutBody } from "@workspace/api-zod";
 import { v4 as uuidv4 } from "uuid";
 import {
@@ -39,7 +39,7 @@ const formatPayment = (p: typeof paymentsTable.$inferSelect) => ({
 });
 
 // ── POST /payments/checkout ───────────────────────────────────────────────────
-router.post("/payments/checkout", requireAuth, async (req: AuthRequest, res) => {
+router.post("/payments/checkout", requireAuth, requireArtistRole, async (req: AuthRequest, res) => {
   const parse = CreateCheckoutBody.safeParse(req.body);
   if (!parse.success) {
     res
@@ -171,6 +171,7 @@ router.post("/payments/checkout", requireAuth, async (req: AuthRequest, res) => 
 router.get(
   "/payments/order/:orderId",
   requireAuth,
+  requireArtistRole,
   async (req: AuthRequest, res) => {
     // Verify the order belongs to this artist before returning payment (OWASP A01)
     const [order] = await db
@@ -238,6 +239,7 @@ router.get(
 router.get(
   "/payments/:id/pix-qr",
   requireAuth,
+  requireArtistRole,
   async (req: AuthRequest, res) => {
     const [payment] = await db
       .select()

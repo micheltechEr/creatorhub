@@ -453,7 +453,7 @@ function UploadZone({ onUploaded }: { onUploaded: () => void }) {
       <Button
         onClick={handleUpload}
         disabled={!file || !title.trim() || uploading}
-        className="w-full bg-[#C9A961] hover:bg-[#B8964F] text-[#0A0A0A] font-semibold"
+        className="w-full bg-secondary hover:opacity-90 text-secondary-foreground font-semibold"
         style={{ borderRadius: "2px" }}
       >
         {uploading ? "Enviando..." : "Enviar Contrato"}
@@ -549,7 +549,7 @@ export default function Contracts() {
             </Button>
             <Button
               onClick={newContract}
-              className="bg-[#C9A961] hover:bg-[#B8964F] text-[#0A0A0A] font-semibold"
+              className="bg-secondary hover:opacity-90 text-secondary-foreground font-semibold"
               style={{ borderRadius: "2px" }}
             >
               <Plus className="h-4 w-4 mr-2" /> Novo Contrato
@@ -572,7 +572,7 @@ export default function Contracts() {
               </Button>
               <Button
                 onClick={newContract}
-                className="bg-[#C9A961] hover:bg-[#B8964F] text-[#0A0A0A] font-semibold"
+                className="bg-secondary hover:opacity-90 text-secondary-foreground font-semibold"
                 style={{ borderRadius: "2px" }}
               >
                 <Plus className="h-4 w-4 mr-2" /> Novo Contrato
@@ -750,7 +750,7 @@ export default function Contracts() {
               size="sm"
               onClick={() => saveMutation.mutate({ status: "finalized" })}
               disabled={saveMutation.isPending || !editorTitle.trim() || !editorHtml.trim()}
-              className="bg-[#C9A961] hover:bg-[#B8964F] text-[#0A0A0A] font-semibold"
+              className="bg-secondary hover:opacity-90 text-secondary-foreground font-semibold"
               style={{ borderRadius: "2px" }}
             >
               <CheckCircle className="h-4 w-4 mr-1.5" /> Finalizar

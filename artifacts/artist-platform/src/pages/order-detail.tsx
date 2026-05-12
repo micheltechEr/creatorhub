@@ -20,12 +20,12 @@ import {
 import { toast } from "sonner";
 
 const STATUS_BADGE: Record<string, { text: string; className: string; borderColor: string }> = {
-  PROPOSED:        { text: "Proposto",           className: "text-[#1E5BA1] bg-[#F0F5FB] border-[#D0E2F4]", borderColor: "#1E5BA1" },
-  PAYMENT_PENDING: { text: "Aguard. Pagamento",  className: "text-[#B8860B] bg-[#FFFBF0] border-[#F0D990]", borderColor: "#B8860B" },
-  PAID:            { text: "Pago",               className: "text-[#2D8A45] bg-[#F0F7F2] border-[#B8DFC4]", borderColor: "#2D8A45" },
-  IN_PROGRESS:     { text: "Em Andamento",       className: "text-[#8A6A1B] bg-[#FFFAF0] border-[#E8D5A3]", borderColor: "#C9A961" },
-  DELIVERED:       { text: "Entregue",           className: "text-[#2D8A45] bg-[#F0F7F2] border-[#B8DFC4]", borderColor: "#2D8A45" },
-  CANCELLED:       { text: "Cancelado",          className: "text-[#A53A3A] bg-[#FAF0F0] border-[#E8B8B8]", borderColor: "#A53A3A" },
+  PROPOSED:        { text: "Proposto",           className: "text-[#1E5BA1] bg-[#F0F5FB] dark:bg-[#0D1B2A] dark:text-[#6FA8DC] border-[#D0E2F4] dark:border-[#1E3A5F]", borderColor: "#1E5BA1" },
+  PAYMENT_PENDING: { text: "Aguard. Pagamento",  className: "text-[#B8860B] bg-[#FFFBF0] dark:bg-[#2A2000] dark:text-[#F0D990] border-[#F0D990] dark:border-[#3D2E00]", borderColor: "#B8860B" },
+  PAID:            { text: "Pago",               className: "text-[#2D8A45] bg-[#F0F7F2] dark:bg-[#0D2818] dark:text-[#6FCF8C] border-[#B8DFC4] dark:border-[#1A4D2E]", borderColor: "#2D8A45" },
+  IN_PROGRESS:     { text: "Em Andamento",       className: "text-[#8A6A1B] bg-[#FFFAF0] dark:bg-[#2A2000] dark:text-[#C9A961] border-[#E8D5A3] dark:border-[#3D2E00]", borderColor: "#C9A961" },
+  DELIVERED:       { text: "Entregue",           className: "text-[#2D8A45] bg-[#F0F7F2] dark:bg-[#0D2818] dark:text-[#6FCF8C] border-[#B8DFC4] dark:border-[#1A4D2E]", borderColor: "#2D8A45" },
+  CANCELLED:       { text: "Cancelado",          className: "text-[#A53A3A] bg-[#FAF0F0] dark:bg-[#2A0D0D] dark:text-[#E88B8B] border-[#E8B8B8] dark:border-[#5A1A1A]", borderColor: "#A53A3A" },
 };
 
 const STATUS_LABELS: Record<string, string> = {
@@ -117,7 +117,7 @@ function CheckoutForm({ orderId, onSuccess }: { orderId: string; onSuccess: () =
   };
 
   return (
-    <div className="bg-white border border-border" style={cardStyle}>
+    <div className="bg-card border border-border" style={cardStyle}>
       <div className="px-5 py-4 border-b border-border">
         <p className="text-sm font-semibold flex items-center gap-2">
           <Clock className="h-4 w-4 text-[#C9A961]" />
@@ -127,7 +127,7 @@ function CheckoutForm({ orderId, onSuccess }: { orderId: string; onSuccess: () =
       <div className="p-5">
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-1.5">
-            <Label className="text-xs font-medium uppercase tracking-[0.5px] text-[#1F1F1F]">
+            <Label className="text-xs font-medium uppercase tracking-[0.5px] text-foreground">
               CPF / CNPJ do Pagador <span className="text-[#A53A3A]">*</span>
             </Label>
             <Input
@@ -142,7 +142,7 @@ function CheckoutForm({ orderId, onSuccess }: { orderId: string; onSuccess: () =
           </div>
 
           <div className="space-y-2">
-            <Label className="text-xs font-medium uppercase tracking-[0.5px] text-[#1F1F1F]">
+            <Label className="text-xs font-medium uppercase tracking-[0.5px] text-foreground">
               Tipo de Cobrança
             </Label>
             <div className="space-y-2">
@@ -153,7 +153,7 @@ function CheckoutForm({ orderId, onSuccess }: { orderId: string; onSuccess: () =
                   onClick={() => setBillingType(bt.value as any)}
                   className={`w-full flex items-center gap-3 p-3 border text-left transition-colors ${
                     billingType === bt.value
-                      ? "border-[#C9A961] bg-[#FFFBF0]"
+                      ? "border-[#C9A961] bg-[#FFFBF0] dark:bg-[#2A2000]"
                       : "border-border hover:border-muted-foreground/40"
                   }`}
                   style={{ borderRadius: "2px" }}
@@ -172,7 +172,7 @@ function CheckoutForm({ orderId, onSuccess }: { orderId: string; onSuccess: () =
 
           <Button
             type="submit"
-            className="w-full h-11 text-sm font-semibold bg-[#0A0A0A] text-white hover:bg-[#1F1F1F]"
+            className="w-full h-11 text-sm font-semibold bg-foreground text-background hover:opacity-90"
             style={{ borderRadius: "2px" }}
             disabled={checkout.isPending}
           >
@@ -190,13 +190,13 @@ function PaymentCard({ payment }: { payment: any }) {
   };
 
   const statusMap: Record<string, { text: string; className: string }> = {
-    CONFIRMED: { text: "Confirmado", className: "text-[#2D8A45] bg-[#F0F7F2] border-[#B8DFC4]" },
-    PENDING:   { text: "Pendente",   className: "text-[#B8860B] bg-[#FFFBF0] border-[#F0D990]" },
+    CONFIRMED: { text: "Confirmado", className: "text-[#2D8A45] bg-[#F0F7F2] dark:bg-[#0D2818] dark:text-[#6FCF8C] border-[#B8DFC4] dark:border-[#1A4D2E]" },
+    PENDING:   { text: "Pendente",   className: "text-[#B8860B] bg-[#FFFBF0] dark:bg-[#2A2000] dark:text-[#F0D990] border-[#F0D990] dark:border-[#3D2E00]" },
   };
-  const statusCfg = statusMap[payment.status] ?? { text: payment.status, className: "text-muted-foreground bg-[#F8F8F8] border-border" };
+  const statusCfg = statusMap[payment.status] ?? { text: payment.status, className: "text-muted-foreground bg-muted border-border" };
 
   return (
-    <div className="bg-white border border-border" style={cardStyle}>
+    <div className="bg-card border border-border" style={cardStyle}>
       <div className="px-5 py-4 border-b border-border">
         <p className="text-sm font-semibold">Pagamento</p>
       </div>
@@ -348,7 +348,7 @@ export default function OrderDetail({ params }: { params: { id: string } }) {
         <div className="lg:col-span-2 space-y-5">
           {/* Order card */}
           <div
-            className="bg-white border border-border"
+            className="bg-card border border-border"
             style={{ ...cardStyle, borderLeft: `4px solid ${borderColor}` }}
           >
             <div className="px-6 py-5 border-b border-border">
@@ -396,7 +396,7 @@ export default function OrderDetail({ params }: { params: { id: string } }) {
                     {order.names.map((name, i) => (
                       <span
                         key={i}
-                        className="inline-flex items-center px-3 py-1 text-xs font-medium bg-[#F8F8F8] border border-border text-foreground"
+                        className="inline-flex items-center px-3 py-1 text-xs font-medium bg-muted border border-border text-foreground"
                         style={{ borderRadius: "2px" }}
                       >
                         {name}
@@ -409,7 +409,7 @@ export default function OrderDetail({ params }: { params: { id: string } }) {
               {order.additionalInstructions && (
                 <div>
                   <p className="text-xs font-medium uppercase tracking-[0.5px] text-muted-foreground mb-1">Instruções Adicionais</p>
-                  <p className="text-sm bg-[#F8F8F8] border border-border p-3 text-foreground leading-relaxed" style={{ borderRadius: "2px" }}>
+                  <p className="text-sm bg-muted border border-border p-3 text-foreground leading-relaxed" style={{ borderRadius: "2px" }}>
                     {order.additionalInstructions}
                   </p>
                 </div>
@@ -433,7 +433,7 @@ export default function OrderDetail({ params }: { params: { id: string } }) {
           </div>
 
           {/* Timeline */}
-          <div className="bg-white border border-border" style={cardStyle}>
+          <div className="bg-card border border-border" style={cardStyle}>
             <div className="px-5 py-4 border-b border-border">
               <p className="text-sm font-semibold">Progresso do Pedido</p>
             </div>
@@ -449,9 +449,9 @@ export default function OrderDetail({ params }: { params: { id: string } }) {
                         <div
                           className={`w-8 h-8 flex items-center justify-center text-xs font-bold transition-colors ${
                             isCancelled
-                              ? "bg-[#FAF0F0] text-[#A53A3A] border border-[#E8B8B8]"
+                              ? "bg-[#FAF0F0] dark:bg-[#2A0D0D] text-[#A53A3A] dark:text-[#E88B8B] border border-[#E8B8B8] dark:border-[#5A1A1A]"
                               : isPast
-                              ? "bg-[#0A0A0A] text-white"
+                              ? "bg-foreground text-background"
                               : isCurrent
                               ? "bg-[#C9A961] text-white ring-4 ring-[#C9A961]/20"
                               : "bg-[#F0F0F0] text-muted-foreground"
@@ -467,7 +467,7 @@ export default function OrderDetail({ params }: { params: { id: string } }) {
                       {index < STATUS_TIMELINE.length - 1 && (
                         <div
                           className={`flex-1 h-0.5 mx-1 transition-colors ${
-                            isPast ? "bg-[#0A0A0A]" : "bg-[#E5E5E5]"
+                            isPast ? "bg-foreground" : "bg-[#E5E5E5] dark:bg-[#333333]"
                           }`}
                         />
                       )}
@@ -479,7 +479,7 @@ export default function OrderDetail({ params }: { params: { id: string } }) {
           </div>
 
           {/* Metadata */}
-          <div className="bg-white border border-border" style={cardStyle}>
+          <div className="bg-card border border-border" style={cardStyle}>
             <div className="px-5 py-4 border-b border-border">
               <p className="text-sm font-semibold">Informações</p>
             </div>
@@ -507,7 +507,7 @@ export default function OrderDetail({ params }: { params: { id: string } }) {
           )}
 
           {transitions.length > 0 && (
-            <div className="bg-white border border-border" style={cardStyle}>
+            <div className="bg-card border border-border" style={cardStyle}>
               <div className="px-5 py-4 border-b border-border">
                 <p className="text-sm font-semibold">Ações</p>
               </div>
@@ -518,9 +518,9 @@ export default function OrderDetail({ params }: { params: { id: string } }) {
                     variant={t.variant}
                     className={`w-full justify-start text-sm font-medium ${
                       t.variant === "default"
-                        ? "bg-[#0A0A0A] text-white hover:bg-[#1F1F1F]"
+                        ? "bg-foreground text-background hover:opacity-90"
                         : t.variant === "outline"
-                        ? "border-border text-foreground hover:bg-[#F8F8F8]"
+                        ? "border-border text-foreground hover:bg-muted"
                         : ""
                     }`}
                     style={{ borderRadius: "2px" }}

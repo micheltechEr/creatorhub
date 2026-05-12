@@ -1,45 +1,59 @@
 import { Router } from "express";
 import { db } from "@workspace/db";
 import { tenantClientsTable, ordersTable } from "@workspace/db";
-import { eq, and, sql, count } from "drizzle-orm";
+import { eq, and, sql, count, ilike, or } from "drizzle-orm";
 import { requireAuth, requireArtistRole, AuthRequest } from "../middlewares/auth";
 
 const router = Router();
 
+// Safe integer parsing with bounds (OWASP A03)
+function safeInt(val: unknown, fallback: number, max: number): number {
+  const raw = Array.isArray(val) ? val[0] : typeof val === "string" ? val : undefined;
+  const n = parseInt(raw ?? String(fallback), 10);
+  if (Number.isNaN(n) || n < 0) return fallback;
+  return Math.min(n, max);
+}
+
 // ── GET /clients — list artist's clients ──────────────────────────────────────
 router.get("/clients", requireAuth, requireArtistRole, async (req: AuthRequest, res) => {
   const tenantId = req.tenantId!;
-  const limit = Math.min(Number(req.query.limit ?? 50), 200);
-  const offset = Math.max(Number(req.query.offset ?? 0), 0);
+  const limit = safeInt(req.query.limit, 50, 200);
+  const offset = safeInt(req.query.offset, 0, 100_000);
   const search = (req.query.search as string) ?? "";
 
-  const clients = await db
-    .select()
-    .from(tenantClientsTable)
-    .where(eq(tenantClientsTable.tenantId, tenantId))
-    .orderBy(sql`${tenantClientsTable.createdAt} DESC`)
-    .limit(limit)
-    .offset(offset);
+  // Build WHERE clause — filter at SQL level instead of JS (OWASP A03 injection + performance)
+  const conditions = [eq(tenantClientsTable.tenantId, tenantId)];
+  if (search) {
+    const sanitized = search.replace(/[%_]/g, "\\$&"); // Escape SQL LIKE wildcards
+    conditions.push(
+      or(
+        ilike(tenantClientsTable.name, `%${sanitized}%`),
+        ilike(tenantClientsTable.email, `%${sanitized}%`),
+      ) as any,
+    );
+  }
+  const whereClause = and(...conditions);
 
-  const filtered = search
-    ? clients.filter(
-        (c) =>
-          c.name.toLowerCase().includes(search.toLowerCase()) ||
-          c.email.toLowerCase().includes(search.toLowerCase()),
-      )
-    : clients;
-
-  const [totalResult] = await db
-    .select({ count: count() })
-    .from(tenantClientsTable)
-    .where(eq(tenantClientsTable.tenantId, tenantId));
+  const [clients, totalResult] = await Promise.all([
+    db
+      .select()
+      .from(tenantClientsTable)
+      .where(whereClause)
+      .orderBy(sql`${tenantClientsTable.createdAt} DESC`)
+      .limit(limit)
+      .offset(offset),
+    db
+      .select({ count: count() })
+      .from(tenantClientsTable)
+      .where(whereClause),
+  ]);
 
   res.json({
-    clients: filtered.map((c) => ({
+    clients: clients.map((c) => ({
       ...c,
       totalSpent: Number(c.totalSpent),
     })),
-    total: Number(totalResult?.count ?? 0),
+    total: Number(totalResult[0]?.count ?? 0),
   });
 });
 

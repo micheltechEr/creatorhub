@@ -51,25 +51,25 @@ export default function Login() {
   return (
     <div className="min-h-screen flex bg-background">
       {/* Left panel */}
-      <div className="hidden lg:flex lg:w-1/2 bg-[#0A0A0A] flex-col justify-between p-12">
+      <div className="hidden lg:flex lg:w-1/2 bg-foreground flex-col justify-between p-12">
         <div>
-          <span className="font-serif text-2xl font-semibold text-white tracking-tight">
+          <span className="font-serif text-2xl font-semibold text-background tracking-tight">
             CREATOR HUB
           </span>
-          <div className="mt-1 h-px w-10 bg-[#C9A961]" />
+          <div className="mt-1 h-px w-10 bg-secondary" />
         </div>
         <div>
           <h1
-            className="font-serif text-5xl font-semibold text-white leading-tight mb-6"
+            className="font-serif text-5xl font-semibold text-background leading-tight mb-6"
             style={{ letterSpacing: "-1px" }}
           >
             Vídeos personalizados<br />de elite.
           </h1>
-          <p className="text-[#6D6D6D] text-base leading-relaxed max-w-sm">
+          <p className="text-muted-foreground text-base leading-relaxed max-w-sm">
             Conectamos artistas de excelência com clientes corporativos e personalidades que exigem o melhor.
           </p>
         </div>
-        <p className="text-[#3D3D3D] text-sm">
+        <p className="text-muted-foreground text-sm">
           © {new Date().getFullYear()} CREATOR HUB. Todos os direitos reservados.
         </p>
       </div>
@@ -80,7 +80,7 @@ export default function Login() {
           {/* Mobile logo */}
           <div className="mb-10 lg:hidden">
             <span className="font-serif text-2xl font-semibold text-foreground">CREATOR HUB</span>
-            <div className="mt-1 h-px w-8 bg-[#C9A961]" />
+            <div className="mt-1 h-px w-8 bg-secondary" />
           </div>
 
           <div className="mb-8">
@@ -97,13 +97,13 @@ export default function Login() {
                 name="email"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel className="text-xs font-medium uppercase tracking-[0.5px] text-[#1F1F1F]">
+                    <FormLabel className="text-xs font-medium uppercase tracking-[0.5px] text-foreground">
                       E-mail
                     </FormLabel>
                     <FormControl>
                       <Input
                         placeholder="artista@exemplo.com"
-                        className="h-12 border-border bg-white focus-visible:ring-0 focus-visible:border-foreground text-sm"
+                        className="h-12 border-border bg-background focus-visible:ring-0 focus-visible:border-foreground text-sm"
                         style={{ borderRadius: "2px" }}
                         {...field}
                       />
@@ -117,14 +117,14 @@ export default function Login() {
                 name="password"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel className="text-xs font-medium uppercase tracking-[0.5px] text-[#1F1F1F]">
+                    <FormLabel className="text-xs font-medium uppercase tracking-[0.5px] text-foreground">
                       Senha
                     </FormLabel>
                     <FormControl>
                       <Input
                         type="password"
                         placeholder="••••••••"
-                        className="h-12 border-border bg-white focus-visible:ring-0 focus-visible:border-foreground text-sm"
+                        className="h-12 border-border bg-background focus-visible:ring-0 focus-visible:border-foreground text-sm"
                         style={{ borderRadius: "2px" }}
                         {...field}
                       />
@@ -136,7 +136,7 @@ export default function Login() {
 
               <Button
                 type="submit"
-                className="w-full h-12 text-sm font-semibold bg-[#0A0A0A] text-white hover:bg-[#1F1F1F] transition-all duration-200"
+                className="w-full h-12 text-sm font-semibold bg-foreground text-background hover:opacity-90 transition-all duration-200"
                 style={{ borderRadius: "2px" }}
                 disabled={loginMutation.isPending}
               >
@@ -149,7 +149,7 @@ export default function Login() {
             <p className="text-sm text-muted-foreground">
               Não tem conta?{" "}
               <Link href="/register">
-                <span className="text-[#C9A961] font-semibold hover:underline cursor-pointer">
+                <span className="text-secondary font-semibold hover:underline cursor-pointer">
                   Cadastre-se como Artista
                 </span>
               </Link>

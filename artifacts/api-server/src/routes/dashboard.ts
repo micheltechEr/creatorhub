@@ -2,11 +2,19 @@ import { Router } from "express";
 import { db } from "@workspace/db";
 import { ordersTable, paymentsTable, artistsTable, reviewsTable } from "@workspace/db";
 import { eq, and, sql, gte } from "drizzle-orm";
-import { requireAuth, AuthRequest } from "../middlewares/auth";
+import { requireAuth, AuthRequest, requireArtistRole } from "../middlewares/auth";
 
 const router = Router();
 
-router.get("/dashboard/stats", requireAuth, async (req: AuthRequest, res) => {
+// Safe integer parsing with bounds (OWASP A03)
+function safeInt(val: unknown, fallback: number, max: number): number {
+  const raw = Array.isArray(val) ? val[0] : typeof val === "string" ? val : undefined;
+  const n = parseInt(raw ?? String(fallback), 10);
+  if (Number.isNaN(n) || n < 0) return fallback;
+  return Math.min(n, max);
+}
+
+router.get("/dashboard/stats", requireAuth, requireArtistRole, async (req: AuthRequest, res) => {
   const artistId = req.artistId!;
 
   const [artist, ordersByStatus, earningsResult, pendingResult] = await Promise.all([
@@ -46,8 +54,8 @@ router.get("/dashboard/stats", requireAuth, async (req: AuthRequest, res) => {
   });
 });
 
-router.get("/dashboard/recent-orders", requireAuth, async (req: AuthRequest, res) => {
-  const limit = Number(req.query.limit ?? 10);
+router.get("/dashboard/recent-orders", requireAuth, requireArtistRole, async (req: AuthRequest, res) => {
+  const limit = safeInt(req.query.limit, 10, 100);
 
   const orders = await db
     .select()
@@ -75,8 +83,8 @@ router.get("/dashboard/recent-orders", requireAuth, async (req: AuthRequest, res
   res.json({ orders: result });
 });
 
-router.get("/dashboard/earnings", requireAuth, async (req: AuthRequest, res) => {
-  const months = Number(req.query.months ?? 6);
+router.get("/dashboard/earnings", requireAuth, requireArtistRole, async (req: AuthRequest, res) => {
+  const months = safeInt(req.query.months, 6, 24);
   const startDate = new Date();
   startDate.setMonth(startDate.getMonth() - months);
 

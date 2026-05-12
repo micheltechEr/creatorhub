@@ -1,8 +1,9 @@
 import { Router } from "express";
+import { randomUUID } from "crypto";
 import { db } from "@workspace/db";
 import { ordersTable, artistsTable } from "@workspace/db";
 import { eq, and, sql } from "drizzle-orm";
-import { requireAuth, AuthRequest } from "../middlewares/auth";
+import { requireAuth, AuthRequest, requireArtistRole } from "../middlewares/auth";
 import { CreateOrderBody, UpdateOrderStatusBody } from "@workspace/api-zod";
 import { orderCreateLimiter } from "../lib/rate-limiters";
 
@@ -46,7 +47,7 @@ function safeInt(val: string | undefined, fallback: number, max: number): number
 }
 
 // ── GET /orders — list artist's own orders ───────────────────────────────────
-router.get("/orders", requireAuth, async (req: AuthRequest, res) => {
+router.get("/orders", requireAuth, requireArtistRole, async (req: AuthRequest, res) => {
   const { status, limit, offset } = req.query as Record<string, string>;
 
   const safeLimit = safeInt(limit, 20, 100);
@@ -111,11 +112,11 @@ router.post("/orders", orderCreateLimiter, async (req, res) => {
     return;
   }
 
-  const [order] = await db
-    .insert(ordersTable)
-    .values({
-      clientId: data.artistId,
-      artistId: data.artistId,
+    const [order] = await db
+      .insert(ordersTable)
+      .values({
+        clientId: randomUUID(),
+        artistId: data.artistId,
       title: data.title,
       description: data.description,
       occasion: data.occasion,
@@ -135,7 +136,7 @@ router.post("/orders", orderCreateLimiter, async (req, res) => {
 });
 
 // ── GET /orders/:id — get one order (must belong to artist) ─────────────────
-router.get("/orders/:id", requireAuth, async (req: AuthRequest, res) => {
+router.get("/orders/:id", requireAuth, requireArtistRole, async (req: AuthRequest, res) => {
   const [order] = await db
     .select()
     .from(ordersTable)
@@ -156,7 +157,7 @@ router.get("/orders/:id", requireAuth, async (req: AuthRequest, res) => {
 });
 
 // ── PATCH /orders/:id/status — advance order state machine ──────────────────
-router.patch("/orders/:id/status", requireAuth, async (req: AuthRequest, res) => {
+router.patch("/orders/:id/status", requireAuth, requireArtistRole, async (req: AuthRequest, res) => {
   const parse = UpdateOrderStatusBody.safeParse(req.body);
   if (!parse.success) {
     res

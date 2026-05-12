@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState, useCallback } from "react";
 import {
   ClerkProvider,
   SignIn,
@@ -29,6 +29,7 @@ import AdminArtists from "@/pages/admin/artists";
 import AdminOrders from "@/pages/admin/orders";
 import { Toaster } from "@/components/ui/sonner";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
+import { ThemeProvider } from "@/contexts/ThemeContext";
 
 const clerkPubKey = import.meta.env.VITE_CLERK_PUBLISHABLE_KEY as string;
 const clerkProxyUrl = import.meta.env.VITE_CLERK_PROXY_URL;
@@ -126,17 +127,47 @@ function HomeRedirect() {
   return <Redirect to="/dashboard" />;
 }
 
-function AutoBootstrapUser() {
+type BootstrapState = "idle" | "loading" | "done" | "error";
+
+/**
+ * Ensures the authenticated Clerk user has a corresponding row in platform_users.
+ * Blocks children rendering until the bootstrap completes (or fails).
+ */
+function AutoBootstrapUser({ children }: { children: React.ReactNode }) {
   const { isSignedIn, isLoaded } = useUser();
+  const [state, setState] = useState<BootstrapState>("idle");
   const ran = useRef(false);
 
-  useEffect(() => {
-    if (!isLoaded || !isSignedIn || ran.current) return;
+  const bootstrap = useCallback(async () => {
+    if (ran.current) return;
     ran.current = true;
-    void api.post("/users/bootstrap-from-clerk").catch(() => undefined);
-  }, [isLoaded, isSignedIn]);
+    setState("loading");
+    try {
+      await api.post("/users/bootstrap-from-clerk");
+      setState("done");
+    } catch (err) {
+      console.error("[AutoBootstrapUser] Bootstrap failed:", err);
+      setState("error");
+    }
+  }, []);
 
-  return null;
+  useEffect(() => {
+    if (!isLoaded || !isSignedIn) return;
+    bootstrap();
+  }, [isLoaded, isSignedIn, bootstrap]);
+
+  // Not signed in yet or Clerk still loading — let children render (gates handle redirect)
+  if (!isLoaded || !isSignedIn) return <>{children}</>;
+
+  // Bootstrap in progress
+  if (state === "loading" || state === "idle") return <Spinner />;
+
+  // Bootstrap failed — still let ProfileGate handle the 403 → /onboarding redirect
+  // so the user can retry or complete onboarding
+  if (state === "error") return <>{children}</>;
+
+  // Bootstrap succeeded
+  return <>{children}</>;
 }
 
 /**
@@ -277,8 +308,8 @@ function ClerkProviderWithRoutes() {
     >
       <QueryClientProvider client={queryClient}>
         <ClerkQueryClientCacheInvalidator />
-        <AutoBootstrapUser />
         <ClerkTokenBridge />
+        <AutoBootstrapUser>
         <Switch>
           {/* Public */}
           <Route path="/" component={HomeRedirect} />
@@ -324,6 +355,7 @@ function ClerkProviderWithRoutes() {
             {() => <ProfileGate><Contracts /></ProfileGate>}
           </Route>
         </Switch>
+        </AutoBootstrapUser>
         <Toaster />
       </QueryClientProvider>
     </ClerkProvider>
@@ -332,8 +364,10 @@ function ClerkProviderWithRoutes() {
 
 export default function App() {
   return (
-    <WouterRouter base={basePath}>
-      <ClerkProviderWithRoutes />
-    </WouterRouter>
+    <ThemeProvider>
+      <WouterRouter base={basePath}>
+        <ClerkProviderWithRoutes />
+      </WouterRouter>
+    </ThemeProvider>
   );
 }

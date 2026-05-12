@@ -1,9 +1,12 @@
 import { useState } from "react";
 import { useListOrders, getListOrdersQueryKey } from "@workspace/api-client-react";
 import { Card, CardContent } from "@/components/ui/card";
+import { Skeleton } from "@/components/ui/skeleton";
+import { EmptyState } from "@/components/ui/empty-state";
+import { Breadcrumb } from "@/components/ui/breadcrumb";
 import { formatCurrency, formatDate } from "@/lib/format";
 import { Link } from "wouter";
-import { AlertCircle, ChevronRight, Filter } from "lucide-react";
+import { AlertCircle, ChevronRight, Filter, ListOrdered } from "lucide-react";
 import {
   Select,
   SelectContent,
@@ -13,12 +16,12 @@ import {
 } from "@/components/ui/select";
 
 const STATUS_BADGE: Record<string, { text: string; className: string; borderLeft: string }> = {
-  PROPOSED:        { text: "Proposto",          className: "text-[#1E5BA1] bg-[#F0F5FB] border-[#D0E2F4]", borderLeft: "#1E5BA1" },
-  PAYMENT_PENDING: { text: "Aguard. Pagamento", className: "text-[#B8860B] bg-[#FFFBF0] border-[#F0D990]", borderLeft: "#B8860B" },
-  PAID:            { text: "Pago",              className: "text-[#2D8A45] bg-[#F0F7F2] border-[#B8DFC4]", borderLeft: "#2D8A45" },
-  IN_PROGRESS:     { text: "Em Andamento",      className: "text-[#8A6A1B] bg-[#FFFAF0] border-[#E8D5A3]", borderLeft: "#C9A961" },
-  DELIVERED:       { text: "Entregue",          className: "text-[#2D8A45] bg-[#F0F7F2] border-[#B8DFC4]", borderLeft: "#2D8A45" },
-  CANCELLED:       { text: "Cancelado",         className: "text-[#A53A3A] bg-[#FAF0F0] border-[#E8B8B8]", borderLeft: "#A53A3A" },
+  PROPOSED:        { text: "Proposto",          className: "text-[#1E5BA1] bg-[#F0F5FB] dark:bg-[#0D1B2A] dark:text-[#6FA8DC] border-[#D0E2F4] dark:border-[#1E3A5F]", borderLeft: "#1E5BA1" },
+  PAYMENT_PENDING: { text: "Aguard. Pagamento", className: "text-[#B8860B] bg-[#FFFBF0] dark:bg-[#2A2000] dark:text-[#F0D990] border-[#F0D990] dark:border-[#3D2E00]", borderLeft: "#B8860B" },
+  PAID:            { text: "Pago",              className: "text-[#2D8A45] bg-[#F0F7F2] dark:bg-[#0D2818] dark:text-[#6FCF8C] border-[#B8DFC4] dark:border-[#1A4D2E]", borderLeft: "#2D8A45" },
+  IN_PROGRESS:     { text: "Em Andamento",      className: "text-[#8A6A1B] bg-[#FFFAF0] dark:bg-[#2A2000] dark:text-[#C9A961] border-[#E8D5A3] dark:border-[#3D2E00]", borderLeft: "#C9A961" },
+  DELIVERED:       { text: "Entregue",          className: "text-[#2D8A45] bg-[#F0F7F2] dark:bg-[#0D2818] dark:text-[#6FCF8C] border-[#B8DFC4] dark:border-[#1A4D2E]", borderLeft: "#2D8A45" },
+  CANCELLED:       { text: "Cancelado",         className: "text-[#A53A3A] bg-[#FAF0F0] dark:bg-[#2A0D0D] dark:text-[#E88B8B] border-[#E8B8B8] dark:border-[#5A1A1A]", borderLeft: "#A53A3A" },
 };
 
 const ALL_STATUSES = ["PROPOSED", "PAYMENT_PENDING", "PAID", "IN_PROGRESS", "DELIVERED", "CANCELLED"];
@@ -48,6 +51,8 @@ export default function Orders() {
 
   return (
     <div className="space-y-6">
+      <Breadcrumb items={[{ label: "Pedidos" }]} />
+
       {/* Header */}
       <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
         <div>
@@ -57,7 +62,7 @@ export default function Orders() {
           </p>
         </div>
         <div
-          className="flex items-center gap-2 bg-white border border-border px-3 py-2"
+          className="flex items-center gap-2 bg-card border border-border px-3 py-2"
           style={{ borderRadius: "2px", boxShadow: "0 2px 8px rgba(0,0,0,0.06)" }}
         >
           <Filter className="h-3.5 w-3.5 text-muted-foreground" />
@@ -80,30 +85,19 @@ export default function Orders() {
       {isLoading ? (
         <div className="space-y-3">
           {Array.from({ length: 5 }).map((_, i) => (
-            <div
-              key={i}
-              className="h-20 bg-white border border-border animate-pulse"
-              style={{
-                borderRadius: "4px",
-                background: "linear-gradient(90deg, #fff 0%, #F8F8F8 50%, #fff 100%)",
-                backgroundSize: "200% 100%",
-                animation: "shimmer 1.5s infinite",
-              }}
-            />
+            <Skeleton key={i} className="h-20 w-full" />
           ))}
         </div>
       ) : orders.length === 0 ? (
-        <div
-          className="bg-white border border-border p-16 text-center"
-          style={{ borderRadius: "4px", boxShadow: "0 2px 8px rgba(0,0,0,0.06)" }}
-        >
-          <p className="text-muted-foreground text-sm">Nenhum pedido encontrado</p>
-          <p className="text-muted-foreground text-xs mt-1">
-            {statusFilter !== "all"
+        <EmptyState
+          icon={ListOrdered}
+          title="Nenhum pedido encontrado"
+          description={
+            statusFilter !== "all"
               ? "Tente remover o filtro de status"
-              : "Compartilhe seu perfil para começar a receber pedidos"}
-          </p>
-        </div>
+              : "Compartilhe seu perfil para começar a receber pedidos"
+          }
+        />
       ) : (
         <div className="space-y-3">
           {orders.map((order) => {
@@ -122,7 +116,7 @@ export default function Orders() {
             return (
               <Link key={order.id} href={`/orders/${order.id}`}>
                 <div
-                  className="bg-white border border-border hover:shadow-md transition-all duration-200 cursor-pointer group"
+                  className="bg-card border border-border hover:shadow-md transition-all duration-200 cursor-pointer group"
                   style={{
                     borderRadius: "2px",
                     borderLeft: `4px solid ${borderLeft}`,

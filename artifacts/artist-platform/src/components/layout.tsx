@@ -1,11 +1,12 @@
 import { useClerk, useUser } from "@clerk/react";
 import { Link, useLocation } from "wouter";
-import { LayoutDashboard, ListOrdered, Video, User, Star, LogOut, Menu, Users, FileText } from "lucide-react";
+import { LayoutDashboard, ListOrdered, Video, User, Star, LogOut, Menu, Users, FileText, Sun, Moon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { useGetMe, getGetMeQueryKey } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { useTheme } from "@/contexts/ThemeContext";
 
 const navItems = [
   { href: "/dashboard",  label: "Dashboard",   icon: LayoutDashboard },
@@ -31,6 +32,8 @@ export function Layout({ children }: { children: React.ReactNode }) {
     queryClient.clear();
     await signOut();
   };
+
+  const { theme, toggleTheme } = useTheme();
 
   const displayName = artist?.name ?? user?.fullName ?? "";
   const displayEmail = artist?.email ?? user?.primaryEmailAddress?.emailAddress ?? "";
@@ -86,6 +89,14 @@ export function Layout({ children }: { children: React.ReactNode }) {
             </div>
           </div>
         )}
+        <button
+          onClick={toggleTheme}
+          className="w-full flex items-center gap-2 px-3 py-2.5 text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-sidebar-accent transition-colors duration-150"
+          style={{ borderRadius: "2px" }}
+        >
+          {theme === "dark" ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
+          {theme === "dark" ? "Modo Claro" : "Modo Escuro"}
+        </button>
         <button
           onClick={handleLogout}
           className="w-full flex items-center gap-2 px-3 py-2.5 text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-sidebar-accent transition-colors duration-150"
