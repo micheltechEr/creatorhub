@@ -14,8 +14,8 @@ staticSites:
 
     buildCommand: |
       corepack enable &&
-      corepack prepare pnpm@latest --activate &&
-      pnpm install --frozen-lockfile &&
+      corepack prepare pnpm@9.15.4 --activate &&
+      pnpm install &&
       pnpm --filter @workspace/api-spec run codegen &&
       pnpm --filter @workspace/artist-platform run build
 

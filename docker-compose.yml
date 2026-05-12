@@ -19,6 +19,10 @@ services:
       ASAAS_API_KEY: ${ASAAS_API_KEY}
       ASAAS_ENV: ${ASAAS_ENV:-sandbox}
       CORS_ORIGIN: ${CORS_ORIGIN:-http://localhost:3000}
+      SUPABASE_URL: ${SUPABASE_URL}
+      SUPABASE_ANON_KEY: ${SUPABASE_ANON_KEY}
+      VITE_SUPABASE_URL: ${VITE_SUPABASE_URL}
+      VITE_SUPABASE_PUBLISHABLE_KEY: ${VITE_SUPABASE_PUBLISHABLE_KEY}
     volumes:
       - uploads:/app/uploads
     healthcheck:
@@ -27,27 +31,6 @@ services:
       timeout: 5s
       retries: 3
       start_period: 15s
-    depends_on:
-      db:
-        condition: service_healthy
-
-  # ── PostgreSQL ───────────────────────────────────────────────────────────
-  db:
-    image: postgres:16-alpine
-    container_name: creatorhub-db
-    restart: unless-stopped
-    environment:
-      POSTGRES_USER: ${POSTGRES_USER:-artistflow}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
-      POSTGRES_DB: ${POSTGRES_DB:-artistflow}
-    volumes:
-      - pgdata:/var/lib/postgresql/data
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-artistflow}"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
 
 volumes:
-  pgdata:
   uploads:

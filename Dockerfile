@@ -1,12 +1,13 @@
 # =============================================================================
 # CREATOR HUB — Multi-stage Docker build (Render / Docker Compose)
-# Base: node:20-alpine (~5 MB)
+# Base: node:22-alpine (Node.js 22 LTS)
 # Multi-stage: builder installs + builds, runner copies only what's needed
 # =============================================================================
 
 # ── Shared base ──────────────────────────────────────────────────────────────
-FROM node:20-alpine AS base
-RUN corepack enable && corepack prepare pnpm@latest --activate
+FROM node:22-alpine AS base
+# Pin pnpm@9 — evita problemas com pnpm@11 (node:sqlite, onlyBuiltDependencies)
+RUN corepack enable && corepack prepare pnpm@9.15.4 --activate
 
 # ── Builder ──────────────────────────────────────────────────────────────────
 FROM base AS builder
@@ -23,7 +24,9 @@ COPY artifacts/api-server/ artifacts/api-server/
 COPY artifacts/artist-platform/ artifacts/artist-platform/
 
 # 3) Install all dependencies (dev deps included — needed for build tools)
-RUN pnpm install --frozen-lockfile
+#    NOTA: Sem --frozen-lockfile porque os overrides no lockfile podem divergir
+#    do que está no repo local. pnpm install regenera se necessário.
+RUN pnpm install
 
 # 4) Generate Zod schemas + React Query hooks from the OpenAPI spec
 RUN pnpm --filter @workspace/api-spec run codegen
@@ -37,7 +40,7 @@ ENV BASE_PATH=/
 RUN pnpm --filter @workspace/artist-platform run build
 
 # ── Runner ───────────────────────────────────────────────────────────────────
-FROM node:20-alpine AS runner
+FROM node:22-alpine AS runner
 WORKDIR /app
 
 # Install wget for healthchecks
