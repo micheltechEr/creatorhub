@@ -13,28 +13,49 @@ RUN corepack enable && corepack prepare pnpm@9.15.4 --activate
 FROM base AS builder
 WORKDIR /app
 
+# Vite variáveis de ambiente (substituídas em tempo de build)
+# Docker-compose passa via build.args; valores padrão evitam undefined
+ARG VITE_CLERK_PUBLISHABLE_KEY=""
+ARG VITE_SUPABASE_URL=""
+ARG VITE_SUPABASE_PUBLISHABLE_KEY=""
+ARG VITE_API_BASE_URL=""
+
+ENV VITE_CLERK_PUBLISHABLE_KEY=${VITE_CLERK_PUBLISHABLE_KEY} \
+    VITE_SUPABASE_URL=${VITE_SUPABASE_URL} \
+    VITE_SUPABASE_PUBLISHABLE_KEY=${VITE_SUPABASE_PUBLISHABLE_KEY} \
+    VITE_API_BASE_URL=${VITE_API_BASE_URL}
+
 # 1) Copy workspace manifests first (layer cache for pnpm install)
 COPY package.json pnpm-workspace.yaml pnpm-lock.yaml \
      tsconfig.base.json tsconfig.json .npmrc ./
 
-# 2) Copy workspace packages needed for the build
+# 2) Copy only the package.json of each workspace package so pnpm can
+#    resolve the workspace graph without invalidating the install cache
+#    when source code changes.
+COPY lib/api-spec/package.json lib/api-spec/package.json
+COPY lib/api-client-react/package.json lib/api-client-react/package.json
+COPY lib/api-zod/package.json lib/api-zod/package.json
+COPY lib/db/package.json lib/db/package.json
+COPY scripts/package.json scripts/package.json
+COPY artifacts/api-server/package.json artifacts/api-server/package.json
+COPY artifacts/artist-platform/package.json artifacts/artist-platform/package.json
+
+# 3) Install all dependencies (dev deps included — needed for build tools)
+RUN pnpm install
+
+# 4) Copy workspace packages needed for the build
 COPY lib/ lib/
 COPY scripts/ scripts/
 COPY artifacts/api-server/ artifacts/api-server/
 COPY artifacts/artist-platform/ artifacts/artist-platform/
 
-# 3) Install all dependencies (dev deps included — needed for build tools)
-#    NOTA: Sem --frozen-lockfile porque os overrides no lockfile podem divergir
-#    do que está no repo local. pnpm install regenera se necessário.
-RUN pnpm install
-
-# 4) Generate Zod schemas + React Query hooks from the OpenAPI spec
+# 5) Generate Zod schemas + React Query hooks from the OpenAPI spec
 RUN pnpm --filter @workspace/api-spec run codegen
 
-# 5) Build the API server — esbuild bundles everything into dist/index.mjs
+# 6) Build the API server — esbuild bundles everything into dist/index.mjs
 RUN pnpm --filter @workspace/api-server run build
 
-# 6) Build the React frontend — Vite outputs to artifacts/artist-platform/dist/public
+# 7) Build the React frontend — Vite outputs to artifacts/artist-platform/dist/public
 ENV PORT=8080
 ENV BASE_PATH=/
 RUN pnpm --filter @workspace/artist-platform run build

@@ -48,6 +48,15 @@ services:
         value: sandbox
       - key: CORS_ORIGIN
         sync: false
+      # Vite — disponíveis em tempo de build (substituídas pelo Vite no frontend)
+      - key: VITE_CLERK_PUBLISHABLE_KEY
+        sync: false
+      - key: VITE_SUPABASE_URL
+        sync: false
+      - key: VITE_SUPABASE_PUBLISHABLE_KEY
+        sync: false
+      - key: VITE_API_BASE_URL
+        sync: false
 
     healthCheckPath: /api/healthz
     autoDeploy: true

@@ -29,11 +29,19 @@ app.use(
     contentSecurityPolicy: {
       directives: {
         defaultSrc: ["'self'"],
-        scriptSrc: ["'self'"],
-        styleSrc: ["'self'", "'unsafe-inline'"],
+        scriptSrc: ["'self'", "https://*.clerk.accounts.dev"],
+        styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
+        fontSrc: ["'self'", "data:", "https://fonts.gstatic.com"],
         imgSrc: ["'self'", "data:", "blob:", "https:"],
-        connectSrc: ["'self'", "https://*.clerk.accounts.dev", "https://clerk.com"],
-        frameSrc: ["'none'"],
+        connectSrc: [
+          "'self'",
+          "ws:",
+          "wss:",
+          "https://*.clerk.accounts.dev",
+          "https://clerk.com",
+          "https://*.clerk.com",
+        ],
+        frameSrc: ["'self'", "https://*.clerk.accounts.dev"],
         objectSrc: ["'none'"],
       },
     },
