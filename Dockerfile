@@ -70,8 +70,9 @@ RUN apk add --no-cache wget
 ENV NODE_ENV=production \
     PORT=8080
 
-# API server bundle (self-contained — no node_modules required)
-COPY --from=builder /app/artifacts/api-server/dist ./dist
+# API server bundle — mantém o mesmo path do builder para que pino/thread-stream
+# resolva os workers no caminho correto (esbuild-plugin-pino usa paths absolutos)
+COPY --from=builder /app/artifacts/api-server/dist ./artifacts/api-server/dist
 
 # Frontend static files — Express serves them at / in production mode
 COPY --from=builder /app/artifacts/artist-platform/dist/public ./public
@@ -86,4 +87,4 @@ RUN addgroup -S appgroup && adduser -S appuser -G appgroup && \
     chown -R appuser:appgroup /app
 USER appuser
 
-CMD ["node", "--enable-source-maps", "./dist/index.mjs"]
+CMD ["node", "--enable-source-maps", "./artifacts/api-server/dist/index.mjs"]
