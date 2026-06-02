@@ -1,11 +1,12 @@
 import { Router } from "express";
 import { db } from "@workspace/db";
-import { artistsTable, platformUsersTable } from "@workspace/db";
+import { artistsTable, platformUsersTable, asaasAccountsTable } from "@workspace/db";
 import { eq, and, gte, lte, sql } from "drizzle-orm";
 import { requireAuth, AuthRequest, requireArtistRole } from "../middlewares/auth";
 import { UpdateMeBody, ToggleAvailabilityBody } from "@workspace/api-zod";
 import { getAuth } from "@clerk/express";
 import { z } from "zod";
+import { findOrCreateCustomer } from "../lib/asaas";
 
 const router = Router();
 
@@ -225,6 +226,55 @@ router.get("/artists", async (req, res) => {
     artists: artists.map(formatArtist),
     total: Number(countResult[0]?.count ?? 0),
   });
+});
+
+// ── POST /artists/me/connect-asaas — connect artist to Asaas payment gateway ─
+router.post("/artists/me/connect-asaas", requireAuth, requireArtistRole, async (req: AuthRequest, res) => {
+  try {
+    const [artist] = await db
+      .select()
+      .from(artistsTable)
+      .where(eq(artistsTable.id, req.artistId!))
+      .limit(1);
+
+    if (!artist) {
+      res.status(404).json({ error: "Not found", message: "Artista não encontrado" });
+      return;
+    }
+
+    // Check if already connected
+    const [existingAccount] = await db
+      .select()
+      .from(asaasAccountsTable)
+      .where(eq(asaasAccountsTable.artistId, artist.id))
+      .limit(1);
+
+    if (existingAccount) {
+      res.json({ walletId: existingAccount.walletId, status: existingAccount.status });
+      return;
+    }
+
+    // Create customer in Asaas
+    const customer = await findOrCreateCustomer({
+      name: artist.name,
+      email: artist.email,
+    });
+
+    // Persist the relationship
+    const [account] = await db
+      .insert(asaasAccountsTable)
+      .values({
+        artistId: artist.id,
+        asaasCustomerId: customer.id,
+        walletId: customer.id, // Asaas uses customer ID as wallet reference
+        status: "ACTIVE",
+      })
+      .returning();
+
+    res.json({ walletId: account.walletId, status: account.status });
+  } catch (err: any) {
+    res.status(500).json({ error: "Asaas error", message: err.message ?? "Falha ao conectar ao Asaas" });
+  }
 });
 
 // ── GET /artists/:id — public profile ─────────────────────────────────────────

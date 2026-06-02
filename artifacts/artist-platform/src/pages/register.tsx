@@ -1,4 +1,4 @@
-import { useAuth, handleAuthRateLimit } from "@/lib/auth-context";
+import { handleAuthRateLimit } from "@/lib/auth-context";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -37,7 +37,6 @@ const inputStyle = { borderRadius: "2px" };
 const labelCls = "text-xs font-medium uppercase tracking-[0.5px] text-[#1F1F1F]";
 
 export default function Register() {
-  const { login } = useAuth();
   const [, setLocation] = useLocation();
   const registerMutation = useRegister();
   const [tagInput, setTagInput] = useState("");
@@ -57,12 +56,11 @@ export default function Register() {
 
   const onSubmit = async (data: RegisterFormValues) => {
     try {
-      const response = await registerMutation.mutateAsync({ data });
-      login(response.accessToken, response.refreshToken);
+      await registerMutation.mutateAsync({ data });
       toast.success("Bem-vindo ao CREATOR HUB!");
       setLocation("/dashboard");
     } catch (err: unknown) {
-      if (handleAuthRateLimit(err, setLocation)) {
+      if (handleAuthRateLimit(err)) {
         toast.error("Muitas tentativas. Acesso bloqueado temporariamente.");
         return;
       }

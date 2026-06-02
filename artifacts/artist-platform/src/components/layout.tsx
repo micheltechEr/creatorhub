@@ -1,6 +1,6 @@
 import { useClerk, useUser } from "@clerk/react";
 import { Link, useLocation } from "wouter";
-import { LayoutDashboard, ListOrdered, Video, User, Star, LogOut, Menu, Users, FileText, Sun, Moon } from "lucide-react";
+import { LayoutDashboard, ListOrdered, Video, User, Star, LogOut, Menu, Users, FileText, Sun, Moon, Wallet } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { useGetMe, getGetMeQueryKey } from "@workspace/api-client-react";
@@ -13,6 +13,7 @@ const navItems = [
   { href: "/orders",     label: "Pedidos",     icon: ListOrdered },
   { href: "/clients",    label: "Clientes",    icon: Users },
   { href: "/contracts",  label: "Contratos",   icon: FileText },
+  { href: "/wallet",     label: "Financeiro",  icon: Wallet },
   { href: "/media",      label: "Portfólio",   icon: Video },
   { href: "/profile",    label: "Perfil",      icon: User },
   { href: "/reviews",    label: "Avaliações",  icon: Star },

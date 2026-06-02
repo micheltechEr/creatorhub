@@ -66,7 +66,7 @@ router.get("/clients/:id", requireAuth, requireArtistRole, async (req: AuthReque
     .from(tenantClientsTable)
     .where(
       and(
-        eq(tenantClientsTable.id, req.params.id),
+        eq(tenantClientsTable.id, req.params.id as string),
         eq(tenantClientsTable.tenantId, tenantId),
       ),
     )
@@ -145,7 +145,7 @@ router.put("/clients/:id", requireAuth, requireArtistRole, async (req: AuthReque
     })
     .where(
       and(
-        eq(tenantClientsTable.id, req.params.id),
+        eq(tenantClientsTable.id, req.params.id as string),
         eq(tenantClientsTable.tenantId, tenantId),
       ),
     )
@@ -167,12 +167,12 @@ router.delete("/clients/:id", requireAuth, requireArtistRole, async (req: AuthRe
     .delete(tenantClientsTable)
     .where(
       and(
-        eq(tenantClientsTable.id, req.params.id),
+        eq(tenantClientsTable.id, req.params.id as string),
         eq(tenantClientsTable.tenantId, tenantId),
       ),
     );
 
-  res.json({ message: "Cliente removido", id: req.params.id });
+   res.json({ message: "Cliente removido", id: req.params.id });
 });
 
 export default router;

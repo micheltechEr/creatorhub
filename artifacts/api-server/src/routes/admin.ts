@@ -172,7 +172,7 @@ router.get("/admin/artists/:id", async (req, res) => {
     bio: artist.bio,
     createdAt: artist.createdAt,
     orderStats: orderStats.map((s) => ({ status: s.status, count: Number(s.count) })),
-    totalClients: Number(clientCount[0]?.count ?? 0),
+        totalClients: Number(clientCount[0]?.count ?? 0),
   });
 });
 
@@ -327,7 +327,7 @@ router.get("/admin/users/:id", async (req, res) => {
         .where(eq(ordersTable.artistId, user.tenantId))
         .groupBy(ordersTable.status);
 
-      const [clientCount] = await db
+      const clientCountResult = await db
         .select({ count: count() })
         .from(tenantClientsTable)
         .where(eq(tenantClientsTable.tenantId, user.tenantId));
@@ -346,7 +346,7 @@ router.get("/admin/users/:id", async (req, res) => {
 
       orderStats = {
         byStatus: stats.map((s) => ({ status: s.status, count: Number(s.count) })),
-        totalClients: Number(clientCount[0]?.count ?? 0),
+        totalClients: Number(clientCountResult[0]?.count ?? 0),
       };
     }
   }
@@ -395,7 +395,7 @@ router.patch("/admin/users/:id/role", async (req, res) => {
       .from(platformUsersTable)
       .where(eq(platformUsersTable.role, "superadmin"));
 
-    if (Number(superadminCount[0]?.count ?? 0) <= 1) {
+    if (Number(superadminCount?.count ?? 0) <= 1) {
       res.status(400).json({
         error: "Forbidden",
         message: "Não é possível remover o último superadmin da plataforma",
@@ -438,7 +438,7 @@ router.delete("/admin/users/:id", async (req, res) => {
       .from(platformUsersTable)
       .where(eq(platformUsersTable.role, "superadmin"));
 
-    if (Number(superadminCount[0]?.count ?? 0) <= 1) {
+    if (Number(superadminCount?.count ?? 0) <= 1) {
       res.status(400).json({
         error: "Forbidden",
         message: "Não é possível remover o último superadmin da plataforma",

@@ -4,7 +4,11 @@ import {
   getGetMeQueryKey,
   useUpdateMe,
   useToggleAvailability,
+  ConnectAsaasButton as _ConnectAsaasButton,
 } from "@workspace/api-client-react";
+
+// Workaround: @types/react version mismatch between workspace packages
+const ConnectAsaasButton = _ConnectAsaasButton as unknown as React.ComponentType<{ onConnected?: (walletId: string) => void }>;
 import { useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -276,6 +280,22 @@ export default function Profile() {
             </Button>
           </a>
         </div>
+      </div>
+
+      {/* Asaas Connect */}
+      <div
+        className="bg-card border border-border p-5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3"
+        style={cardStyle}
+      >
+        <div>
+          <p className="text-sm font-semibold text-foreground">Pagamentos (Asaas)</p>
+          <p className="text-xs text-muted-foreground mt-0.5">
+            Conecte sua conta Asaas para receber pagamentos dos pedidos
+          </p>
+        </div>
+        <ConnectAsaasButton
+          onConnected={(walletId) => toast.success(`Asaas conectado! Wallet: ${walletId}`)}
+        />
       </div>
 
       {/* Profile info */}

@@ -1,4 +1,4 @@
-import { Router } from "express";
+  import { Router } from "express";
 import multer from "multer";
 import path from "path";
 import fs from "fs";
@@ -79,7 +79,7 @@ router.get("/contracts/:id", requireAuth, requireArtistRole, async (req: AuthReq
   const [contract] = await db
     .select()
     .from(contractsTable)
-    .where(and(eq(contractsTable.id, req.params.id), eq(contractsTable.tenantId, req.tenantId!)))
+    .where(and(eq(contractsTable.id, req.params.id as string), eq(contractsTable.tenantId, req.tenantId!)))
     .limit(1);
 
   if (!contract) {
@@ -130,7 +130,7 @@ router.put("/contracts/:id", requireAuth, requireArtistRole, async (req: AuthReq
   const [contract] = await db
     .update(contractsTable)
     .set(updates)
-    .where(and(eq(contractsTable.id, req.params.id), eq(contractsTable.tenantId, req.tenantId!)))
+    .where(and(eq(contractsTable.id, req.params.id as string), eq(contractsTable.tenantId, req.tenantId!)))
     .returning();
 
   if (!contract) {
@@ -146,7 +146,7 @@ router.delete("/contracts/:id", requireAuth, requireArtistRole, async (req: Auth
   const [existing] = await db
     .select()
     .from(contractsTable)
-    .where(and(eq(contractsTable.id, req.params.id), eq(contractsTable.tenantId, req.tenantId!)))
+    .where(and(eq(contractsTable.id, req.params.id as string), eq(contractsTable.tenantId, req.tenantId!)))
     .limit(1);
 
   if (!existing) {
@@ -163,7 +163,7 @@ router.delete("/contracts/:id", requireAuth, requireArtistRole, async (req: Auth
     }
   }
 
-  await db.delete(contractsTable).where(eq(contractsTable.id, req.params.id));
+  await db.delete(contractsTable).where(eq(contractsTable.id, req.params.id as string));
   res.json({ message: "Contrato removido", id: req.params.id });
 });
 
@@ -202,7 +202,7 @@ router.post(
 
 // ── GET /contracts/file/:filename — serve uploaded contract files ──────────────
 router.get("/contracts/file/:filename", requireAuth, (req, res) => {
-  const safeFilename = path.basename(req.params.filename);
+  const safeFilename = path.basename(req.params.filename as string);
   if (!/^[\w.-]+$/.test(safeFilename)) {
     res.status(400).json({ error: "Invalid filename" });
     return;

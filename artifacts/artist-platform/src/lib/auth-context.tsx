@@ -5,6 +5,18 @@ import { useEffect } from "react";
 import { useAuth } from "@clerk/react";
 import { setAuthTokenGetter } from "@workspace/api-client-react";
 
+export { useAuth } from "@clerk/react";
+
+/** Check if the error response is a rate limit and handle accordingly */
+export function handleAuthRateLimit(error: unknown): boolean {
+  const err = error as { response?: { status?: number }; status?: number };
+  const status = err?.response?.status ?? err?.status;
+  if (status === 429) {
+    return true; // caller should show rate-limit message
+  }
+  return false;
+}
+
 export function ClerkTokenBridge() {
   const { getToken } = useAuth();
 

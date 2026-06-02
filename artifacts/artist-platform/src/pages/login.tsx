@@ -1,4 +1,4 @@
-import { useAuth, handleAuthRateLimit } from "@/lib/auth-context";
+import { handleAuthRateLimit } from "@/lib/auth-context";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -24,7 +24,6 @@ const loginSchema = z.object({
 type LoginFormValues = z.infer<typeof loginSchema>;
 
 export default function Login() {
-  const { login } = useAuth();
   const [, setLocation] = useLocation();
   const loginMutation = useLogin();
 
@@ -35,12 +34,11 @@ export default function Login() {
 
   const onSubmit = async (data: LoginFormValues) => {
     try {
-      const response = await loginMutation.mutateAsync({ data });
-      login(response.accessToken, response.refreshToken);
+      await loginMutation.mutateAsync({ data });
       toast.success("Bem-vindo ao CREATOR HUB");
       setLocation("/dashboard");
     } catch (err: unknown) {
-      if (handleAuthRateLimit(err, setLocation)) {
+      if (handleAuthRateLimit(err)) {
         toast.error("Muitas tentativas. Acesso bloqueado temporariamente.");
         return;
       }

@@ -613,7 +613,7 @@ export default function ArtistPublic() {
       {/* FOOTER */}
       <footer className="bg-foreground text-muted-foreground text-xs py-8 mt-10">
         <div className="max-w-5xl mx-auto px-6 flex flex-col sm:flex-row items-center justify-between gap-2">
-          <span className="text-secondary font-semibold">ArtistFlow</span>
+          <span className="text-secondary font-semibold">Creator Hub</span>
           <span>© {new Date().getFullYear()} Todos os direitos reservados</span>
         </div>
       </footer>

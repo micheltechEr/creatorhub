@@ -24,6 +24,7 @@ import ArtistPublic from "@/pages/artist-public";
 import Onboarding from "@/pages/onboarding";
 import Clients from "@/pages/clients";
 import Contracts from "@/pages/contracts";
+import Wallet from "@/pages/wallet";
 import AdminDashboard from "@/pages/admin/dashboard";
 import AdminArtists from "@/pages/admin/artists";
 import AdminOrders from "@/pages/admin/orders";
@@ -353,6 +354,9 @@ function ClerkProviderWithRoutes() {
           </Route>
           <Route path="/contracts">
             {() => <ProfileGate><Contracts /></ProfileGate>}
+          </Route>
+          <Route path="/wallet">
+            {() => <ProfileGate><Wallet /></ProfileGate>}
           </Route>
         </Switch>
         </AutoBootstrapUser>
