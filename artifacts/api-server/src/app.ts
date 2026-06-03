@@ -61,27 +61,45 @@ const ALLOWED_ORIGINS: string[] = rawOrigins
       "https://*.spock.replit.dev",
     ];
 
-app.use(
-  cors({
-    origin: (origin, callback) => {
-      if (!origin) return callback(null, true);
-      const allowed = ALLOWED_ORIGINS.some((o) => {
-        if (o.includes("*")) {
-          const prefix = o.split("*")[0];
-          return origin.startsWith(prefix);
-        }
-        return origin.startsWith(o);
-      });
-      if (allowed) {
-        return callback(null, true);
+// CORREÇÃO OWASP A05: CORS com rejeição de requests sem Origin em produção
+// Em dev, aceitar sem origin (Postman, curl). Em prod, bloquear.
+// Webhooks (server-to-server) são excluídos — não enviam Origin header.
+const isProduction = process.env.NODE_ENV === "production";
+const WEBHOOK_PATHS = ["/api/payments/webhook", "/api/webhooks/"];
+
+const corsMiddleware = cors({
+  origin: (origin, callback) => {
+    // Em produção, rejeitar requests sem origin
+    // Em dev, aceitar sem origin para facilitar testes
+    if (!origin) {
+      if (isProduction) {
+        return callback(new Error("CORS: origin header required"));
       }
-      callback(new Error(`CORS: origin not allowed — ${origin}`));
-    },
-    credentials: true,
-    methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
-    allowedHeaders: ["Content-Type", "Authorization"],
-  }),
-);
+      return callback(null, true);
+    }
+    const allowed = ALLOWED_ORIGINS.some((o) => {
+      if (o.includes("*")) {
+        const prefix = o.split("*")[0];
+        return origin.startsWith(prefix);
+      }
+      return origin.startsWith(o);
+    });
+    if (allowed) {
+      return callback(null, true);
+    }
+    callback(new Error(`CORS: origin not allowed — ${origin}`));
+  },
+  credentials: true,
+  methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+  allowedHeaders: ["Content-Type", "Authorization"],
+});
+
+// Aplicar CORS exceto em rotas de webhook (server-to-server sem Origin)
+app.use((req, res, next) => {
+  const isWebhook = WEBHOOK_PATHS.some((p) => req.path.startsWith(p));
+  if (isWebhook) return next();
+  corsMiddleware(req, res, next);
+});
 
 // ── Global rate limiter (OWASP A04) ─────────────────────────────────────────
 app.use(globalLimiter);

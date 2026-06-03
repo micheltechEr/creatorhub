@@ -5,6 +5,7 @@ import { eq, and } from "drizzle-orm";
 import { requireAuth, AuthRequest, requireArtistRole } from "../middlewares/auth";
 import { CreateCheckoutBody } from "@workspace/api-zod";
 import { v4 as uuidv4 } from "uuid";
+import crypto from "crypto";
 import {
   findOrCreateCustomer,
   createPayment,
@@ -302,13 +303,23 @@ router.get(
 // Register in Asaas dashboard: POST https://your-domain/api/payments/webhook
 // Set a strong token in ASAAS_WEBHOOK_TOKEN and configure it in Asaas dashboard.
 router.post("/payments/webhook", async (req, res) => {
-  // Validate webhook token if configured (OWASP A08)
+  // CORREÇÃO OWASP A02: Validação segura do token do webhook (timing-safe)
+  // Previne timing attacks na comparação do token
   if (ASAAS_WEBHOOK_TOKEN) {
     const provided =
-      req.headers["asaas-access-token"] ??
-      req.headers["x-webhook-token"] ??
-      "";
-    if (provided !== ASAAS_WEBHOOK_TOKEN) {
+      (req.headers["asaas-access-token"] ??
+        req.headers["x-webhook-token"] ??
+        "") as string;
+    if (!provided || provided.length !== ASAAS_WEBHOOK_TOKEN.length) {
+      logger.warn({ ip: req.ip }, "Webhook request with invalid token");
+      res.status(401).json({ error: "Unauthorized" });
+      return;
+    }
+    const isValid = crypto.timingSafeEqual(
+      Buffer.from(provided),
+      Buffer.from(ASAAS_WEBHOOK_TOKEN),
+    );
+    if (!isValid) {
       logger.warn({ ip: req.ip }, "Webhook request with invalid token");
       res.status(401).json({ error: "Unauthorized" });
       return;

@@ -1,6 +1,7 @@
 import { Router, type Request, type Response } from "express";
 import { asaasService, MIN_WITHDRAWAL_CENTS } from "../services/asaasService";
 import { PIX_KEY_TYPES } from "@workspace/db/schema";
+import { requireAuth, requireArtistRole, requireSuperAdmin, AuthRequest } from "../middlewares/auth";
 import crypto from "crypto";
 
 const router = Router();
@@ -16,14 +17,23 @@ router.post("/webhooks/asaas", async (req: Request, res: Response) => {
         return;
       }
 
-      // Verificar assinatura HMAC SHA-256
+      // Verificar assinatura HMAC SHA-256 (timing-safe via crypto.verify implícito)
       const rawBody = JSON.stringify(req.body);
       const expected = crypto
         .createHmac("sha256", webhookToken)
         .update(rawBody)
         .digest("hex");
 
-      if (signature !== expected) {
+      // CORREÇÃO OWASP A02: Usar timingSafeEqual para evitar timing attacks
+      if (signature.length !== expected.length) {
+        res.status(401).json({ error: "Invalid signature" });
+        return;
+      }
+      const isValid = crypto.timingSafeEqual(
+        Buffer.from(signature),
+        Buffer.from(expected),
+      );
+      if (!isValid) {
         res.status(401).json({ error: "Invalid signature" });
         return;
       }
@@ -68,7 +78,8 @@ router.get("/wallet", async (req: Request, res: Response) => {
     });
   } catch (err: any) {
     console.error("[GET /wallet]", err);
-    res.status(500).json({ error: err.message });
+    // CORREÇÃO OWASP A09: Não expor detalhes internos do erro
+    res.status(500).json({ error: "Erro interno do servidor" });
   }
 });
 
@@ -81,14 +92,17 @@ router.get("/wallet/transactions", async (req: Request, res: Response) => {
       return;
     }
 
-    const limit = parseInt(req.query.limit as string) || 50;
-    const offset = parseInt(req.query.offset as string) || 0;
+    // CORREÇÃO OWASP A03: Upper bound para evitar abuso de memória/consulta
+    const rawLimit = parseInt(req.query.limit as string) || 50;
+    const rawOffset = parseInt(req.query.offset as string) || 0;
+    const limit = Math.min(Math.max(rawLimit, 1), 100);
+    const offset = Math.max(rawOffset, 0);
 
     const { wallet, transactions } = await asaasService.getTransactions(artistId, limit, offset);
     res.json({ wallet, transactions, limit, offset });
   } catch (err: any) {
     console.error("[GET /wallet/transactions]", err);
-    res.status(500).json({ error: err.message });
+    res.status(500).json({ error: "Erro interno do servidor" });
   }
 });
 
@@ -115,7 +129,7 @@ router.get("/wallet/payout-settings", async (req: Request, res: Response) => {
     });
   } catch (err: any) {
     console.error("[GET /wallet/payout-settings]", err);
-    res.status(500).json({ error: err.message });
+    res.status(500).json({ error: "Erro interno do servidor" });
   }
 });
 
@@ -164,7 +178,7 @@ router.put("/wallet/payout-settings", async (req: Request, res: Response) => {
     });
   } catch (err: any) {
     console.error("[PUT /wallet/payout-settings]", err);
-    res.status(500).json({ error: err.message });
+    res.status(500).json({ error: "Erro interno do servidor" });
   }
 });
 
@@ -201,7 +215,9 @@ router.post("/wallet/withdraw", async (req: Request, res: Response) => {
   } catch (err: any) {
     console.error("[POST /wallet/withdraw]", err);
     const status = err.message.includes("Saldo insuficiente") ? 400 : 500;
-    res.status(status).json({ error: err.message });
+    // CORREÇÃO OWASP A09: Sanitizar mensagem de erro em produção
+    const message = status === 400 ? err.message : "Erro interno do servidor";
+    res.status(status).json({ error: message });
   }
 });
 
@@ -218,21 +234,26 @@ router.get("/wallet/withdrawals", async (req: Request, res: Response) => {
     res.json(withdrawals);
   } catch (err: any) {
     console.error("[GET /wallet/withdrawals]", err);
-    res.status(500).json({ error: err.message });
+    res.status(500).json({ error: "Erro interno do servidor" });
   }
 });
 
 // ── POST /wallet/process-pending — Job: liberar saldos do período de segurança ──
-router.post("/wallet/process-pending", async (req: Request, res: Response) => {
-  try {
-    // TODO: Proteger com auth de admin ou API key interna
-    const result = await asaasService.processPendingTransactions();
-    res.json(result);
-  } catch (err: any) {
-    console.error("[POST /wallet/process-pending]", err);
-    res.status(500).json({ error: err.message });
-  }
-});
+// CORREÇÃO OWASP A01: Endpoint financeiro protegido por autenticação + role super admin
+router.post(
+  "/wallet/process-pending",
+  requireAuth,
+  requireSuperAdmin,
+  async (req: Request, res: Response) => {
+    try {
+      const result = await asaasService.processPendingTransactions();
+      res.json(result);
+    } catch (err: any) {
+      console.error("[POST /wallet/process-pending]", err);
+      res.status(500).json({ error: "Erro ao processar transações pendentes" });
+    }
+  },
+);
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 function maskPixKey(key: string, type: string): string {

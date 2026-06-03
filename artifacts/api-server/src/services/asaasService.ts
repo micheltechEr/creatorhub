@@ -365,16 +365,15 @@ export class AsaasService {
     const availableAt = new Date(now.getTime() + SECURITY_PERIOD_DAYS * 24 * 60 * 60 * 1000);
 
     // Inserir transação de crédito (fonte da verdade)
-    const txData: InsertWalletTransaction = {
+    await db.insert(walletTransactionsTable).values({
       walletId: wallet.id,
       orderId,
-      type: "CREDIT",
+      type: "CREDIT" as const,
       amount: artistAmount,
-      status: "PENDING_SECURITY",
+      status: "PENDING_SECURITY" as const,
       availableAt,
       description: `Pagamento pedido: ${order.title}`,
-    };
-    await db.insert(walletTransactionsTable).values(txData);
+    });
 
     // Atualizar saldo consolidado
     await db
@@ -647,11 +646,12 @@ export class AsaasService {
 
   async updatePayoutSettings(artistId: string, pixKey: string, pixKeyType: string) {
     const existing = await this.getPayoutSettings(artistId);
+    const typedPixKeyType = pixKeyType as "CPF" | "CNPJ" | "EMAIL" | "PHONE" | "EVP";
 
     if (existing) {
       const [updated] = await db
         .update(artistPayoutSettingsTable)
-        .set({ pixKey, pixKeyType, updatedAt: new Date() })
+        .set({ pixKey, pixKeyType: typedPixKeyType, updatedAt: new Date() })
         .where(eq(artistPayoutSettingsTable.artistId, artistId))
         .returning();
       return updated;
@@ -659,7 +659,7 @@ export class AsaasService {
 
     const [created] = await db
       .insert(artistPayoutSettingsTable)
-      .values({ artistId, pixKey, pixKeyType })
+      .values({ artistId, pixKey, pixKeyType: typedPixKeyType })
       .returning();
     return created;
   }
