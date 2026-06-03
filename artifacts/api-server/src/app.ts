@@ -61,20 +61,13 @@ const ALLOWED_ORIGINS: string[] = rawOrigins
       "https://*.spock.replit.dev",
     ];
 
-// CORREÇÃO OWASP A05: CORS com rejeição de requests sem Origin em produção
-// Em dev, aceitar sem origin (Postman, curl). Em prod, bloquear.
-// Webhooks (server-to-server) são excluídos — não enviam Origin header.
-const isProduction = process.env.NODE_ENV === "production";
+// Requests sem Origin header (server-to-server, webhooks, health checks)
+// são permitidos — CORS é proteção de browser, requests sem Origin não vêm de browser.
 const WEBHOOK_PATHS = ["/api/payments/webhook", "/api/webhooks/"];
 
 const corsMiddleware = cors({
   origin: (origin, callback) => {
-    // Em produção, rejeitar requests sem origin
-    // Em dev, aceitar sem origin para facilitar testes
     if (!origin) {
-      if (isProduction) {
-        return callback(new Error("CORS: origin header required"));
-      }
       return callback(null, true);
     }
     const allowed = ALLOWED_ORIGINS.some((o) => {
