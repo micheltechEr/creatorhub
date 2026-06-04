@@ -109,16 +109,16 @@ export default function Dashboard() {
       {/* Header */}
       <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
         <div>
-          <h1 className="font-serif text-4xl font-semibold text-foreground">Dashboard</h1>
-          <p className="text-sm text-muted-foreground mt-1 uppercase tracking-[0.3px]">
+          <h1 className="font-serif text-2xl sm:text-3xl xl:text-4xl font-semibold text-foreground">Dashboard</h1>
+          <p className="text-xs sm:text-sm text-muted-foreground mt-1 uppercase tracking-[0.3px]">
             Visão geral da sua atividade
           </p>
         </div>
         <div
-          className="flex items-center gap-3 bg-card border border-border px-4 py-3"
+          className="flex items-center gap-3 bg-card border border-border px-3 py-2.5 sm:px-4 sm:py-3 self-start lg:self-auto"
           style={{ borderRadius: "4px", boxShadow: "0 2px 8px rgba(0,0,0,0.06)" }}
         >
-          <span className="text-xs font-medium uppercase tracking-[0.5px] text-muted-foreground">
+          <span className="text-[10px] sm:text-xs font-medium uppercase tracking-[0.5px] text-muted-foreground">
             Disponível
           </span>
           <Switch
@@ -126,14 +126,14 @@ export default function Dashboard() {
             onCheckedChange={handleToggleAvailability}
             disabled={toggleMutation.isPending}
           />
-          <span className={`text-sm font-semibold ${stats?.availability ? "text-[#2D8A45]" : "text-muted-foreground"}`}>
+          <span className={`text-xs sm:text-sm font-semibold ${stats?.availability ? "text-[#2D8A45]" : "text-muted-foreground"}`}>
             {stats?.availability ? "Sim" : "Não"}
           </span>
         </div>
       </div>
 
       {/* Stat cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 sm:grid-cols-2 xl:grid-cols-4 gap-3 sm:gap-4">
         {[
           {
             label: "Receita Total",
@@ -148,9 +148,9 @@ export default function Dashboard() {
             icon: <Clock className="h-4 w-4 text-[#B8860B]" />,
           },
           {
-            label: "Taxa de Conclusão",
+            label: "Taxa Conclusão",
             value: `${stats?.completionRate ?? 0}%`,
-            sub: `${stats?.totalOrders ?? 0} pedidos no total`,
+            sub: `${stats?.totalOrders ?? 0} pedidos`,
             icon: <CheckCircle2 className="h-4 w-4 text-[#2D8A45]" />,
           },
           {
@@ -165,15 +165,15 @@ export default function Dashboard() {
             className="bg-card border-border"
             style={{ borderRadius: "4px", boxShadow: "0 2px 8px rgba(0,0,0,0.06)" }}
           >
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-xs font-medium uppercase tracking-[0.5px] text-muted-foreground">
+            <CardHeader className="flex flex-row items-center justify-between pb-1 sm:pb-2 px-3 sm:px-6 pt-3 sm:pt-6">
+              <CardTitle className="text-[10px] sm:text-xs font-medium uppercase tracking-[0.5px] text-muted-foreground">
                 {card.label}
               </CardTitle>
               {card.icon}
             </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-foreground">{card.value}</div>
-              <p className="text-xs text-muted-foreground mt-1">{card.sub}</p>
+            <CardContent className="px-3 sm:px-6 pb-3 sm:pb-6">
+              <div className="text-lg sm:text-2xl font-bold text-foreground">{card.value}</div>
+              <p className="text-[10px] sm:text-xs text-muted-foreground mt-1">{card.sub}</p>
             </CardContent>
           </Card>
         ))}
@@ -189,15 +189,15 @@ export default function Dashboard() {
             <CardTitle className="text-sm font-semibold">Pedidos por Status</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="flex flex-wrap gap-3">
+            <div className="flex flex-wrap gap-2 sm:gap-3">
               {stats.ordersByStatus.map((s) => (
                 <div
                   key={s.status}
-                  className="flex items-center gap-3 border border-border bg-muted/50 px-4 py-2"
+                  className="flex items-center gap-2 sm:gap-3 border border-border bg-muted/50 px-2.5 py-1.5 sm:px-4 sm:py-2 flex-1 min-w-[calc(50%-4px)] sm:flex-none sm:min-w-0 justify-between sm:justify-start"
                   style={{ borderRadius: "2px" }}
                 >
                   <StatusBadge status={s.status} />
-                  <span className="text-2xl font-bold text-foreground">{s.count}</span>
+                  <span className="text-xl sm:text-2xl font-bold text-foreground">{s.count}</span>
                 </div>
               ))}
             </div>
@@ -215,8 +215,8 @@ export default function Dashboard() {
             <CardTitle className="text-sm font-semibold">Ganhos Mensais</CardTitle>
           </CardHeader>
           <CardContent>
-            <ResponsiveContainer width="100%" height={220}>
-              <AreaChart data={chartData}>
+            <ResponsiveContainer width="100%" height={180}>
+              <AreaChart data={chartData} margin={{ top: 5, right: 5, left: -15, bottom: 0 }}>
                 <defs>
                   <linearGradient id="colorGanhos" x1="0" y1="0" x2="0" y2="1">
                     <stop offset="5%" stopColor="#C9A961" stopOpacity={0.25} />
@@ -224,8 +224,8 @@ export default function Dashboard() {
                   </linearGradient>
                 </defs>
                 <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
-                <XAxis dataKey="name" tick={{ fontSize: 11 }} className="text-muted-foreground" />
-                <YAxis tick={{ fontSize: 11 }} tickFormatter={(v) => `R$${v}`} className="text-muted-foreground" />
+                <XAxis dataKey="name" tick={{ fontSize: 9 }} interval="preserveStartEnd" className="text-muted-foreground" />
+                <YAxis tick={{ fontSize: 9 }} tickFormatter={(v) => `R$${v}`} width={45} className="text-muted-foreground" />
                 <Tooltip
                   formatter={(v: number) => formatCurrency(v)}
                   contentStyle={{ borderRadius: "2px", border: "1px solid var(--border)", fontSize: "12px", background: "var(--card)" }}
@@ -248,13 +248,13 @@ export default function Dashboard() {
         className="bg-card border-border"
         style={{ borderRadius: "4px", boxShadow: "0 2px 8px rgba(0,0,0,0.06)" }}
       >
-        <CardHeader className="flex flex-row items-center justify-between">
+        <CardHeader className="flex flex-row items-center justify-between gap-2">
           <CardTitle className="text-sm font-semibold">Pedidos Recentes</CardTitle>
           <Link href="/orders">
             <Button
               variant="ghost"
               size="sm"
-              className="text-[#C9A961] hover:text-[#B8860B] hover:bg-transparent text-xs font-semibold uppercase tracking-[0.5px]"
+              className="text-[#C9A961] hover:text-[#B8860B] hover:bg-transparent text-xs font-semibold uppercase tracking-[0.5px] shrink-0"
             >
               Ver todos <ArrowRight className="ml-1 h-3.5 w-3.5" />
             </Button>
@@ -283,7 +283,7 @@ export default function Dashboard() {
             <div className="divide-y divide-border">
               {recentData.orders.map((order) => (
                 <Link key={order.id} href={`/orders/${order.id}`}>
-                  <div className="flex items-center justify-between py-3 hover:bg-muted/50 px-2 -mx-2 transition-colors duration-150 cursor-pointer">
+                  <div className="flex flex-col gap-2 py-3 hover:bg-muted/50 px-2 -mx-2 transition-colors duration-150 cursor-pointer sm:flex-row sm:items-center sm:justify-between">
                     <div className="flex-1 min-w-0">
                       <p className="text-sm font-semibold truncate text-foreground">{order.title}</p>
                       <p className="text-xs text-muted-foreground mt-0.5">
@@ -293,7 +293,7 @@ export default function Dashboard() {
                           : "Prazo vencido"}
                       </p>
                     </div>
-                    <div className="flex items-center gap-3 ml-4">
+                    <div className="flex items-center gap-2 sm:gap-3 sm:ml-4">
                       {order.daysRemaining <= 2 && order.daysRemaining > 0 && (
                         <AlertCircle className="h-3.5 w-3.5 text-[#B8860B] shrink-0" />
                       )}

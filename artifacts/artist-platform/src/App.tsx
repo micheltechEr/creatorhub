@@ -6,6 +6,7 @@ import {
   useClerk,
   useUser,
 } from "@clerk/react";
+import { ptBR } from "@clerk/localizations";
 import { dark } from "@clerk/themes";
 import { Switch, Route, useLocation, Router as WouterRouter, Redirect } from "wouter";
 import { QueryClientProvider, useQueryClient } from "@tanstack/react-query";
@@ -87,6 +88,26 @@ const clerkAppearance = {
     footerAction: "border-t border-[#2A2A2A]",
     main: "p-6",
     formFieldRow: "gap-3",
+  },
+};
+
+const clerkLocalization = {
+  ...ptBR,
+  signIn: {
+    ...ptBR.signIn,
+    start: {
+      ...ptBR.signIn?.start,
+      title: "Bem-vindo de volta",
+      subtitle: "Entre na sua conta",
+    },
+  },
+  signUp: {
+    ...ptBR.signUp,
+    start: {
+      ...ptBR.signUp?.start,
+      title: "Criar conta",
+      subtitle: "Comece sua jornada como artista",
+    },
   },
 };
 
@@ -300,10 +321,7 @@ function ClerkProviderWithRoutes() {
       appearance={clerkAppearance}
       signInUrl={`${basePath}/sign-in`}
       signUpUrl={`${basePath}/sign-up`}
-      localization={{
-        signIn: { start: { title: "Bem-vindo de volta", subtitle: "Entre na sua conta" } },
-        signUp: { start: { title: "Criar conta", subtitle: "Comece sua jornada como artista" } },
-      }}
+      localization={clerkLocalization}
       routerPush={(to) => setLocation(stripBase(to))}
       routerReplace={(to) => setLocation(stripBase(to), { replace: true })}
     >
